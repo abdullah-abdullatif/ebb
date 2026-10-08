@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1A2B5C"/>
+      <stop offset="0.55" stop-color="#2B4F86"/>
+      <stop offset="1" stop-color="#2E8C8F"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="0.5" cy="0.45" r="0.55">
+      <stop offset="0" stop-color="#FFF1CF"/>
+      <stop offset="0.6" stop-color="#FFC98A"/>
+      <stop offset="1" stop-color="#FF9F7A"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FFD6A0" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#FFD6A0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="w1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7FE0D6"/>
+      <stop offset="1" stop-color="#3BAFB0"/>
+    </linearGradient>
+    <linearGradient id="w2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4FC3BE"/>
+      <stop offset="1" stop-color="#1F7F86"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="squircle">
+      <rect x="100" y="100" width="824" height="824" rx="185" ry="185"/>
+    </clipPath>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#shadow)">
+    <rect x="100" y="100" width="824" height="824" rx="185" ry="185" fill="url(#bg)"/>
+  </g>
+
+  <g clip-path="url(#squircle)">
+    <!-- stars -->
+    <g fill="#FFFFFF">
+      <circle cx="250" cy="250" r="6" opacity="0.7"/>
+      <circle cx="770" cy="220" r="5" opacity="0.6"/>
+      <circle cx="690" cy="330" r="4" opacity="0.5"/>
+      <circle cx="320" cy="370" r="4" opacity="0.45"/>
+      <circle cx="820" cy="420" r="3.5" opacity="0.4"/>
+    </g>
+    <!-- glow + setting sun -->
+    <circle cx="512" cy="560" r="300" fill="url(#glow)"/>
+    <circle cx="512" cy="560" r="185" fill="url(#sun)"/>
+    <!-- back wave (flow) -->
+    <path d="M100 610
+             C 210 560, 300 560, 400 605
+             S 600 655, 700 605
+             S 860 555, 924 590
+             L 924 924 L 100 924 Z" fill="url(#w1)"/>
+    <!-- front wave (ebb) -->
+    <path d="M100 705
+             C 200 665, 300 670, 400 712
+             S 610 760, 712 712
+             S 870 668, 924 690
+             L 924 924 L 100 924 Z" fill="url(#w2)"/>
+    <!-- foam line -->
+    <path d="M100 705 C 200 665, 300 670, 400 712 S 610 760, 712 712 S 870 668, 924 690"
+          fill="none" stroke="#E9FFFB" stroke-opacity="0.55" stroke-width="10" stroke-linecap="round"/>
+    <!-- glass shine -->
+    <rect x="100" y="100" width="824" height="824" fill="url(#shine)"/>
+  </g>
+</svg>
