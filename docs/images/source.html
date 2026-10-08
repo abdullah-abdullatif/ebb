@@ -1,0 +1,335 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--night:#1A2B5C;--dusk:#2B4F86;--tide:#2E8C8F;--foam:#7FE0D6;--sun:#FFC98A;--coral:#FF9F7A;
+--panel:rgba(22,30,58,.86);--line:rgba(255,255,255,.12);--text:#EEF3FF;--muted:rgba(238,243,255,.62)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0c1430;font-family:Inter,sans-serif;color:var(--text)}
+.card{width:1600px;height:1000px;position:relative;overflow:hidden;
+  background:linear-gradient(160deg,#16244f 0%,var(--dusk) 55%,#2a7f86 100%);
+  display:grid;grid-template-columns:600px 1fr;align-items:center;padding:0 90px;gap:60px;margin-bottom:20px}
+.card::before{content:"";position:absolute;width:900px;height:900px;right:-150px;top:-120px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,201,138,.28),rgba(255,201,138,0) 65%)}
+.waves{position:absolute;left:0;right:0;bottom:0;height:220px;opacity:.55}
+.copy,.visual{position:relative;z-index:2}
+.eyebrow{font:700 20px/1 'Plus Jakarta Sans';letter-spacing:.18em;text-transform:uppercase;color:var(--foam);margin-bottom:26px;display:flex;gap:14px;align-items:center}
+.eyebrow .num{background:rgba(127,224,214,.15);border:1px solid rgba(127,224,214,.4);border-radius:30px;padding:8px 14px}
+h1{font:800 64px/1.05 'Plus Jakarta Sans';letter-spacing:-.02em;margin-bottom:26px}
+h1 em{font-style:normal;background:linear-gradient(90deg,var(--sun),var(--coral));-webkit-background-clip:text;color:transparent}
+.lede{font-size:24px;line-height:1.5;color:var(--muted);margin-bottom:34px}
+ul.points{list-style:none;display:grid;gap:18px}
+ul.points li{display:flex;gap:16px;align-items:flex-start;font-size:22px;line-height:1.4}
+ul.points li svg{flex:none;width:30px;height:30px;margin-top:1px}
+.brand{position:absolute;left:90px;bottom:44px;display:flex;align-items:center;gap:14px;z-index:3;font:600 19px 'Plus Jakarta Sans';color:rgba(255,255,255,.75)}
+.hero .brand{display:none}
+.brand img{width:40px;height:40px}
+.visual{display:flex;justify-content:center;align-items:center;height:100%}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 40px 90px rgba(0,0,0,.45);backdrop-filter:blur(20px)}
+.ico{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:12px 20px;border-radius:40px;font-weight:600;font-size:17px}
+.mono{font-variant-numeric:tabular-nums}
+/* menu bar */
+.menubar{width:100%;height:44px;background:rgba(10,16,36,.75);border-radius:12px;display:flex;align-items:center;justify-content:flex-end;gap:26px;padding:0 22px;font-size:17px;color:#dfe6f7;border:1px solid var(--line)}
+.menubar .ours{background:rgba(127,224,214,.22);border-radius:8px;padding:5px 12px;display:flex;gap:8px;align-items:center;color:#fff;font-weight:600}
+</style></head><body>
+
+<!-- reusable icon defs -->
+<svg width="0" height="0" style="position:absolute">
+ <defs>
+  <symbol id="check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="rgba(127,224,214,.18)" stroke="#7FE0D6" stroke-width="1.5"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#7FE0D6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="waves" viewBox="0 0 24 24"><path d="M2 9c2-2 4-2 6 0s4 2 6 0 4-2 6 0M2 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="cup" viewBox="0 0 24 24"><path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9zM17 10h1.5a2.5 2.5 0 0 1 0 5H17M7 3v3M11 3v3M15 3v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="bolt" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  <symbol id="video" viewBox="0 0 24 24"><rect x="2" y="6" width="14" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 10l6-3v10l-6-3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  <symbol id="mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 3v4M16 3v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="people" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="lock" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="hand" viewBox="0 0 24 24"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12M11 11V4.5a1.5 1.5 0 0 1 3 0V12M14 11V6.5a1.5 1.5 0 0 1 3 0V15a7 7 0 0 1-7 7 6 6 0 0 1-5-3l-2.5-4.5a1.5 1.5 0 0 1 2.5-1.6L8 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="pause" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 8v8M14 8v8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+ </defs>
+</svg>
+
+<template id="chrome">
+ <svg class="waves" viewBox="0 0 1600 220" preserveAspectRatio="none"><path d="M0 120 C 220 70, 420 70, 640 115 S 1050 165, 1260 115 S 1500 80, 1600 100 L1600 220 L0 220Z" fill="#3BAFB0" opacity=".35"/><path d="M0 165 C 240 130, 460 135, 700 170 S 1120 205, 1330 165 S 1530 145, 1600 155 L1600 220 L0 220Z" fill="#1F7F86" opacity=".55"/></svg>
+ <div class="brand"><img src="../../Resources/AppIcon.png">Ebb · Work in flow, rest in ebb.</div>
+</template>
+
+<!-- 0 HERO -->
+<section class="card hero" id="f00" style="grid-template-columns:1fr;text-align:center;justify-items:center">
+ <div class="copy" style="display:flex;flex-direction:column;align-items:center">
+  <img src="../../Resources/AppIcon.png" style="width:300px;height:300px;margin-bottom:10px">
+  <h1 style="font-size:130px;margin-bottom:10px">Ebb</h1>
+  <div style="font:700 40px 'Plus Jakarta Sans';margin-bottom:22px"><em style="font-style:normal;background:linear-gradient(90deg,#FFC98A,#FF9F7A);-webkit-background-clip:text;color:transparent">Work in flow, rest in ebb.</em></div>
+  <p class="lede" style="max-width:900px">The macOS menu-bar app that makes you take screen breaks, lets you ask for more time when it matters, and never interrupts a meeting.</p>
+  <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center;max-width:1300px">
+   <span class="btn" style="background:rgba(255,255,255,.1);border:1px solid var(--line)">Real screen time</span>
+   <span class="btn" style="background:rgba(255,255,255,.1);border:1px solid var(--line)">Heads-up</span>
+   <span class="btn" style="background:rgba(255,255,255,.1);border:1px solid var(--line)">Full-screen breaks</span>
+   <span class="btn" style="background:rgba(255,255,255,.1);border:1px solid var(--line)">Exceptions</span>
+   <span class="btn" style="background:rgba(255,255,255,.1);border:1px solid var(--line)">Meeting-aware</span>
+   <span class="btn" style="background:rgba(255,255,255,.1);border:1px solid var(--line)">Strict mode</span>
+   <span class="btn" style="background:rgba(255,255,255,.1);border:1px solid var(--line)">History</span>
+  </div>
+ </div>
+</section>
+
+<!-- 1 SCREEN TIME -->
+<section class="card" id="f01">
+ <div class="copy">
+  <div class="eyebrow"><span class="num">01</span>Smart screen time</div>
+  <h1>Counts the time you’re <em>really</em> working.</h1>
+  <p class="lede">A countdown sits quietly in your menu bar. Ebb only counts minutes when you're actually using your Mac.</p>
+  <ul class="points">
+   <li><svg><use href="#check"/></svg>Stop typing for 60 seconds and the clock pauses</li>
+   <li><svg><use href="#check"/></svg>Step away for 5 minutes and it counts as a break</li>
+   <li><svg><use href="#check"/></svg>Pause Ebb for 30 min, 1 hour or until you resume</li>
+  </ul>
+ </div>
+ <div class="visual" style="flex-direction:column;align-items:flex-end;justify-content:center;gap:0">
+  <div class="menubar"><span>⌘</span><span>Wi-Fi</span><span>100%</span><span class="ours"><svg class="ico"><use href="#waves"/></svg><span class="mono">23:10</span></span><span>Thu 9:41</span></div>
+  <div class="panel" style="width:420px;margin-right:70px;margin-top:12px;padding:26px">
+   <div style="display:flex;gap:18px;align-items:center;margin-bottom:22px">
+    <svg width="74" height="74" viewBox="0 0 74 74"><circle cx="37" cy="37" r="31" stroke="rgba(255,255,255,.12)" stroke-width="8" fill="none"/><circle cx="37" cy="37" r="31" stroke="#3BC0BE" stroke-width="8" fill="none" stroke-linecap="round" stroke-dasharray="194.8" stroke-dashoffset="89" transform="rotate(-90 37 37)"/><g transform="translate(25 25)" color="#7FE0D6"><svg width="24" height="24"><use href="#waves"/></svg></g></svg>
+    <div><div style="font-weight:700;font-size:22px" class="mono">Break in 23:10</div><div style="color:var(--muted);font-size:15px;margin-top:4px">Focused for 26:50 this stretch</div></div>
+   </div>
+   <div style="border-top:1px solid var(--line);padding:16px 0;display:grid;gap:14px;font-size:17px">
+    <div style="display:flex;gap:12px;align-items:center"><svg class="ico"><use href="#cup"/></svg>Take a break now</div>
+    <div style="display:flex;gap:12px;align-items:center"><svg class="ico"><use href="#bolt"/></svg>I'm in flow — ask for more time…</div>
+    <div style="display:flex;gap:12px;align-items:center"><svg class="ico"><use href="#people"/></svg>I'm in a meeting</div>
+    <div style="display:flex;gap:12px;align-items:center"><svg class="ico"><use href="#pause"/></svg>Pause Ebb</div>
+   </div>
+   <div style="border-top:1px solid var(--line);padding-top:16px">
+    <div style="font-weight:700;font-size:16px;margin-bottom:12px">Today</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+     <div><div class="mono" style="font-weight:600;font-size:20px">4:12:30</div><div style="color:var(--muted);font-size:13px">Screen time</div></div>
+     <div><div class="mono" style="font-weight:600;font-size:20px">5</div><div style="color:var(--muted);font-size:13px">Breaks</div></div>
+     <div><div class="mono" style="font-weight:600;font-size:20px">0</div><div style="color:var(--muted);font-size:13px">Skipped</div></div>
+     <div><div class="mono" style="font-weight:600;font-size:20px">2</div><div style="color:var(--muted);font-size:13px">Exceptions left</div></div>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 2 HEADS-UP -->
+<section class="card" id="f02">
+ <div class="copy">
+  <div class="eyebrow"><span class="num">02</span>Gentle heads-up</div>
+  <h1>Two minutes to <em>wrap up</em>.</h1>
+  <p class="lede">No sudden cut-offs. A notification gives you time to finish your sentence, save your file and close the thought.</p>
+  <ul class="points">
+   <li><svg><use href="#check"/></svg>Take the break early with one click</li>
+   <li><svg><use href="#check"/></svg>Or ask for more time right from the notification</li>
+   <li><svg><use href="#check"/></svg>Choose how early you're warned</li>
+  </ul>
+ </div>
+ <div class="visual">
+  <div style="position:relative;width:820px;height:600px">
+   <div class="panel" style="position:absolute;inset:60px 0 0 40px;border-radius:14px;background:rgba(18,24,46,.8);padding:60px 40px 0">
+    <div style="position:absolute;top:18px;left:20px;display:flex;gap:8px"><i style="width:13px;height:13px;border-radius:50%;background:#ff5f57"></i><i style="width:13px;height:13px;border-radius:50%;background:#febc2e"></i><i style="width:13px;height:13px;border-radius:50%;background:#28c840"></i></div>
+    <div style="display:grid;gap:16px;opacity:.55">
+     <i style="height:14px;width:60%;background:#7FE0D6;border-radius:7px;opacity:.6"></i>
+     <i style="height:14px;width:82%;background:#fff;border-radius:7px;opacity:.25"></i>
+     <i style="height:14px;width:74%;background:#fff;border-radius:7px;opacity:.25"></i>
+     <i style="height:14px;width:40%;background:#FFC98A;border-radius:7px;opacity:.5"></i>
+     <i style="height:14px;width:88%;background:#fff;border-radius:7px;opacity:.25"></i>
+     <i style="height:14px;width:66%;background:#fff;border-radius:7px;opacity:.25"></i>
+     <i style="height:14px;width:52%;background:#7FE0D6;border-radius:7px;opacity:.5"></i>
+     <i style="height:14px;width:78%;background:#fff;border-radius:7px;opacity:.25"></i>
+    </div>
+   </div>
+   <div class="panel" style="position:absolute;right:-20px;top:0;width:520px;padding:20px 22px;background:rgba(245,247,252,.96);color:#1b2340;border-radius:20px">
+    <div style="display:flex;gap:14px">
+     <img src="../../Resources/AppIcon.png" style="width:52px;height:52px;margin:-4px">
+     <div style="flex:1">
+      <div style="display:flex;justify-content:space-between;font-size:15px;color:#6a7392"><b style="color:#1b2340">Ebb</b><span>now</span></div>
+      <div style="font-weight:700;font-size:20px;margin:4px 0" class="mono">Break in 2:00</div>
+      <div style="font-size:16px;line-height:1.4;color:#3a4366">Start wrapping up. In the middle of something? Ask for more time.</div>
+     </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px">
+     <div style="background:#e6eaf4;border-radius:10px;padding:11px;text-align:center;font-weight:600;font-size:15px">Take break now</div>
+     <div style="background:#e6eaf4;border-radius:10px;padding:11px;text-align:center;font-weight:600;font-size:15px">I'm in flow — more time</div>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 3 BREAK SCREEN -->
+<section class="card" id="f03">
+ <div class="copy">
+  <div class="eyebrow"><span class="num">03</span>Full-screen break</div>
+  <h1>When it’s time, the screen <em>lets go</em>.</h1>
+  <p class="lede">A calm, blurred break screen covers every display, even full-screen apps, so you actually step away.</p>
+  <ul class="points">
+   <li><svg><use href="#check"/></svg>Breathing guide: 4 seconds in, 6 seconds out</li>
+   <li><svg><use href="#check"/></svg>A new wellbeing tip every 30 seconds</li>
+   <li><svg><use href="#check"/></svg>Fresh work cycle when the break ends</li>
+  </ul>
+ </div>
+ <div class="visual">
+  <div style="width:700px">
+   <div style="background:#0b0f1c;border-radius:26px 26px 0 0;padding:18px 18px 0;border:2px solid #3a4260;border-bottom:none">
+    <div style="height:440px;border-radius:10px 10px 0 0;overflow:hidden;position:relative;background:linear-gradient(180deg,rgba(26,43,92,.96),rgba(43,79,134,.93),rgba(46,140,143,.9));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px">
+     <div style="width:170px;height:170px;border-radius:50%;background:radial-gradient(circle,rgba(255,221,170,.95),rgba(255,201,138,.25) 70%,transparent 72%);display:flex;align-items:center;justify-content:center;color:#1A2B5C;font-weight:700;font-size:16px;margin-bottom:8px">breathe in</div>
+     <div style="font:700 36px 'Plus Jakarta Sans'">Time to ebb</div>
+     <div class="mono" style="font-size:66px;font-weight:300;line-height:1">07:42</div>
+     <div style="font-size:16px;opacity:.85;max-width:420px;text-align:center;margin-top:6px">Look at something 6 metres away for 20 seconds. Your eyes will thank you.</div>
+     <div style="display:flex;gap:14px;margin-top:22px">
+      <span class="btn" style="background:rgba(255,255,255,.16);font-size:14px;padding:10px 16px"><svg class="ico" style="width:16px;height:16px"><use href="#bolt"/></svg>I need more time (2 left today)</span>
+      <span class="btn" style="background:rgba(255,255,255,.08);font-size:14px;padding:10px 16px;opacity:.75">Hold to skip</span>
+     </div>
+    </div>
+   </div>
+   <div style="height:26px;background:linear-gradient(#c9cfdd,#8e95a8);border-radius:0 0 18px 18px;margin:0 -34px;position:relative"><i style="position:absolute;left:50%;top:0;width:150px;height:9px;margin-left:-75px;background:#7c8398;border-radius:0 0 8px 8px"></i></div>
+  </div>
+ </div>
+</section>
+
+<!-- 4 EXCEPTIONS -->
+<section class="card" id="f04">
+ <div class="copy">
+  <div class="eyebrow"><span class="num">04</span>Exceptions</div>
+  <h1>Doing VIP work? <em>Ask for more time.</em></h1>
+  <p class="lede">Deep in a deadline or about to join a call? Push the break back. A small daily budget stops it from becoming a habit.</p>
+  <ul class="points">
+   <li><svg><use href="#check"/></svg>Choose 5, 10, 15 or 25 more minutes</li>
+   <li><svg><use href="#check"/></svg>Say why: one quick line is enough</li>
+   <li><svg><use href="#check"/></svg>3 per day, and never more than 2 hours straight</li>
+  </ul>
+ </div>
+ <div class="visual">
+  <div class="panel" style="width:600px;padding:34px">
+   <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:26px"><div style="font:700 28px 'Plus Jakarta Sans'">Ask for more time</div><div style="color:var(--muted);font-size:15px">2 of 3 left today</div></div>
+   <div style="font-weight:600;font-size:16px;margin-bottom:12px">How long?</div>
+   <div style="display:flex;gap:10px;margin-bottom:26px">
+    <span class="btn" style="background:rgba(255,255,255,.08);border:1px solid var(--line)">5 min</span>
+    <span class="btn" style="background:#2E8C8F;border:1px solid #7FE0D6">10 min</span>
+    <span class="btn" style="background:rgba(255,255,255,.08);border:1px solid var(--line)">15 min</span>
+    <span class="btn" style="background:rgba(255,255,255,.08);border:1px solid var(--line)">25 min</span>
+   </div>
+   <div style="font-weight:600;font-size:16px;margin-bottom:12px">Why?</div>
+   <div style="display:flex;justify-content:space-between;background:rgba(255,255,255,.07);border:1px solid var(--line);border-radius:10px;padding:13px 16px;font-size:17px;margin-bottom:12px">Deep work / in flow<span style="opacity:.6">⌄</span></div>
+   <div style="background:rgba(255,255,255,.07);border:1px solid rgba(127,224,214,.6);border-radius:10px;padding:13px 16px;font-size:17px;margin-bottom:30px;box-shadow:0 0 0 3px rgba(127,224,214,.15)">Finishing the investor deck slides<span style="display:inline-block;width:2px;height:20px;background:#7FE0D6;vertical-align:-4px;margin-left:2px"></span></div>
+   <div style="display:flex;justify-content:space-between;align-items:center">
+    <span style="color:var(--muted);font-size:17px">Never mind</span>
+    <span class="btn" style="background:linear-gradient(90deg,#FFC98A,#FF9F7A);color:#1A2B5C;font-weight:700">Grant me 10 min</span>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 5 MEETINGS -->
+<section class="card" id="f05">
+ <div class="copy">
+  <div class="eyebrow"><span class="num">05</span>Meeting-aware</div>
+  <h1>Never blocks you <em>in a meeting</em>.</h1>
+  <p class="lede">If a break comes due during a call, Ebb waits. It starts the break 90 seconds after you hang up.</p>
+  <ul class="points">
+   <li><svg><use href="#check"/></svg>Zoom, Meet, Teams, Slack, FaceTime and more</li>
+   <li><svg><use href="#check"/></svg>No camera or mic recording — Ebb only checks if they're in use</li>
+   <li><svg><use href="#check"/></svg>A call coming in pauses a break so you can join</li>
+  </ul>
+ </div>
+ <div class="visual" style="flex-direction:column;gap:26px">
+  <div class="panel" style="width:760px;padding:16px;background:rgba(14,18,34,.92)">
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div style="height:190px;border-radius:12px;background:linear-gradient(135deg,#3a4f8a,#2b6f7a);display:flex;align-items:center;justify-content:center;position:relative"><b style="width:84px;height:84px;border-radius:50%;background:#FFC98A;color:#1A2B5C;display:flex;align-items:center;justify-content:center;font-size:30px">SA</b><span style="position:absolute;left:12px;bottom:10px;font-size:14px;opacity:.8">Sara</span></div>
+    <div style="height:190px;border-radius:12px;background:linear-gradient(135deg,#4a3a7a,#2b4f86);display:flex;align-items:center;justify-content:center;position:relative;outline:3px solid #7FE0D6"><b style="width:84px;height:84px;border-radius:50%;background:#7FE0D6;color:#1A2B5C;display:flex;align-items:center;justify-content:center;font-size:30px">AA</b><span style="position:absolute;left:12px;bottom:10px;font-size:14px;opacity:.8">You</span></div>
+    <div style="height:190px;border-radius:12px;background:linear-gradient(135deg,#2b4f86,#1f7f86);display:flex;align-items:center;justify-content:center;position:relative"><b style="width:84px;height:84px;border-radius:50%;background:#FF9F7A;color:#1A2B5C;display:flex;align-items:center;justify-content:center;font-size:30px">OM</b><span style="position:absolute;left:12px;bottom:10px;font-size:14px;opacity:.8">Omar</span></div>
+    <div style="height:190px;border-radius:12px;background:linear-gradient(135deg,#36457a,#4a3a7a);display:flex;align-items:center;justify-content:center;position:relative"><b style="width:84px;height:84px;border-radius:50%;background:#c9b6ff;color:#1A2B5C;display:flex;align-items:center;justify-content:center;font-size:30px">LN</b><span style="position:absolute;left:12px;bottom:10px;font-size:14px;opacity:.8">Lina</span></div>
+   </div>
+  </div>
+  <div style="display:flex;gap:14px">
+   <span class="btn" style="background:rgba(186,150,255,.2);border:1px solid rgba(186,150,255,.6)"><svg class="ico"><use href="#video"/></svg>Camera on</span>
+   <span class="btn" style="background:rgba(186,150,255,.2);border:1px solid rgba(186,150,255,.6)"><svg class="ico"><use href="#mic"/></svg>Mic in use</span>
+   <span class="btn" style="background:rgba(255,255,255,.08);border:1px solid var(--line)"><svg class="ico"><use href="#cal"/></svg>Calendar</span>
+   <span class="btn" style="background:rgba(255,255,255,.08);border:1px solid var(--line)"><svg class="ico"><use href="#people"/></svg>Manual</span>
+  </div>
+  <div class="panel" style="width:560px;padding:18px 20px;background:rgba(245,247,252,.96);color:#1b2340;display:flex;gap:14px;align-items:center">
+   <img src="../../Resources/AppIcon.png" style="width:50px;height:50px;margin:-4px">
+   <div><div style="font-weight:700;font-size:18px">Break postponed — you're in a meeting</div><div style="font-size:15px;color:#3a4366;margin-top:3px">Ebb will wait until the call ends.</div></div>
+  </div>
+ </div>
+</section>
+
+<!-- 6 STRICT MODE -->
+<section class="card" id="f06">
+ <div class="copy">
+  <div class="eyebrow"><span class="num">06</span>Strict mode</div>
+  <h1>As gentle or as <em>firm</em> as you need.</h1>
+  <p class="lede">Normal mode has an emergency exit. Strict mode removes it, for when you know you'll cheat.</p>
+  <ul class="points">
+   <li><svg><use href="#check"/></svg>Normal: hold for 3 seconds to skip in a real emergency</li>
+   <li><svg><use href="#check"/></svg>Strict: hides the Dock and menu bar and blocks ⌘&#8209;Tab</li>
+   <li><svg><use href="#check"/></svg>Exceptions still work in both modes</li>
+  </ul>
+ </div>
+ <div class="visual" style="gap:30px">
+  <div class="panel" style="width:380px;padding:34px">
+   <div style="width:64px;height:64px;border-radius:18px;background:rgba(127,224,214,.18);color:#7FE0D6;display:flex;align-items:center;justify-content:center;margin-bottom:22px"><svg class="ico" style="width:34px;height:34px"><use href="#hand"/></svg></div>
+   <div style="font:700 30px 'Plus Jakarta Sans';margin-bottom:8px">Normal</div>
+   <div style="color:var(--muted);font-size:17px;line-height:1.5;margin-bottom:28px">The break fills the screen, with an escape you have to mean.</div>
+   <div style="position:relative;height:50px;border-radius:30px;background:rgba(255,255,255,.08);overflow:hidden">
+    <i style="position:absolute;inset:0 38% 0 0;background:rgba(255,255,255,.28);border-radius:30px"></i>
+    <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:17px">Keep holding…</span>
+   </div>
+  </div>
+  <div class="panel" style="width:380px;padding:34px;border-color:rgba(255,159,122,.55);box-shadow:0 0 0 1px rgba(255,159,122,.3),0 40px 90px rgba(0,0,0,.45)">
+   <div style="width:64px;height:64px;border-radius:18px;background:rgba(255,159,122,.2);color:#FF9F7A;display:flex;align-items:center;justify-content:center;margin-bottom:22px"><svg class="ico" style="width:34px;height:34px"><use href="#lock"/></svg></div>
+   <div style="font:700 30px 'Plus Jakarta Sans';margin-bottom:8px">Strict</div>
+   <div style="color:var(--muted);font-size:17px;line-height:1.5;margin-bottom:22px">No way around it. The break is the break.</div>
+   <div style="display:grid;gap:12px;font-size:17px">
+    <div>✕&nbsp; Dock & menu bar hidden</div>
+    <div>✕&nbsp; ⌘&#8209;Tab blocked</div>
+    <div>✕&nbsp; No skip button</div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- 7 HISTORY -->
+<section class="card" id="f07">
+ <div class="copy">
+  <div class="eyebrow"><span class="num">07</span>History & balance</div>
+  <h1>See how you’re <em>really</em> doing.</h1>
+  <p class="lede">Every day is logged: screen time, meetings, breaks taken or skipped, and every exception with its reason.</p>
+  <ul class="points">
+   <li><svg><use href="#check"/></svg>A daily balance score from 0 to 100</li>
+   <li><svg><use href="#check"/></svg>Spot the days you lean on exceptions</li>
+   <li><svg><use href="#check"/></svg>Stored privately on your Mac</li>
+  </ul>
+ </div>
+ <div class="visual">
+  <div class="panel" style="width:800px;overflow:hidden">
+   <div style="padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px"><i style="width:13px;height:13px;border-radius:50%;background:#ff5f57"></i><i style="width:13px;height:13px;border-radius:50%;background:#febc2e"></i><i style="width:13px;height:13px;border-radius:50%;background:#28c840"></i><span style="flex:1;text-align:center;font-weight:600;font-size:15px;margin-right:50px">Ebb Settings</span></div>
+   <div style="display:flex;justify-content:center;gap:34px;padding:14px;border-bottom:1px solid var(--line);font-size:15px;color:var(--muted)"><span>Rhythm</span><span>Exceptions</span><span>Meetings</span><span style="color:#7FE0D6;font-weight:700">History</span></div>
+   <div style="padding:26px 30px;display:grid;grid-template-columns:200px 1fr;gap:30px;align-items:center;border-bottom:1px solid var(--line)">
+    <svg width="190" height="190" viewBox="0 0 190 190"><circle cx="95" cy="95" r="80" stroke="rgba(255,255,255,.1)" stroke-width="16" fill="none"/><circle cx="95" cy="95" r="80" stroke="url(#g)" stroke-width="16" fill="none" stroke-linecap="round" stroke-dasharray="502.6" stroke-dashoffset="70" transform="rotate(-90 95 95)"/><defs><linearGradient id="g"><stop offset="0" stop-color="#7FE0D6"/><stop offset="1" stop-color="#FFC98A"/></linearGradient></defs><text x="95" y="102" text-anchor="middle" fill="#fff" font-family="Plus Jakarta Sans" font-weight="800" font-size="52">86</text><text x="95" y="130" text-anchor="middle" fill="rgba(238,243,255,.6)" font-size="15" font-family="Inter">balance</text></svg>
+    <div>
+     <div style="font-weight:700;font-size:18px;margin-bottom:16px">Today · 2026-10-08</div>
+     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px" class="mono">
+      <div><div style="font-size:24px;font-weight:600">5:48</div><div style="color:var(--muted);font-size:13px">Screen</div></div>
+      <div><div style="font-size:24px;font-weight:600">1:20</div><div style="color:var(--muted);font-size:13px">Meetings</div></div>
+      <div><div style="font-size:24px;font-weight:600">6</div><div style="color:var(--muted);font-size:13px">Breaks</div></div>
+      <div><div style="font-size:24px;font-weight:600">0</div><div style="color:var(--muted);font-size:13px">Skipped</div></div>
+     </div>
+     <div style="margin-top:18px;font-size:15px;display:flex;gap:12px;color:var(--muted)"><span class="mono">14:05</span><b style="color:#FFC98A">+10 min</b><span style="color:var(--text)">Deep work</span><span>— Finishing the investor deck</span></div>
+    </div>
+   </div>
+   <div style="padding:18px 30px;display:grid;gap:14px">
+    <div style="display:grid;grid-template-columns:140px repeat(4,1fr) 60px;font-size:16px;align-items:center" class="mono"><span style="color:var(--muted)">2026-10-07</span><span>6:02</span><span>0:45</span><span>5 breaks</span><span>1 skip</span><b style="color:#FFC98A">72</b></div>
+    <div style="display:grid;grid-template-columns:140px repeat(4,1fr) 60px;font-size:16px;align-items:center" class="mono"><span style="color:var(--muted)">2026-10-06</span><span>4:37</span><span>2:10</span><span>4 breaks</span><span>0 skip</span><b style="color:#7FE0D6">100</b></div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<script>
+const t=document.getElementById('chrome');
+document.querySelectorAll('.card').forEach(c=>c.prepend(t.content.cloneNode(true)));
+</script>
+</body></html>

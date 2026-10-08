@@ -8,12 +8,15 @@ A macOS menu-bar app that makes you take screen breaks, lets you ask for more ti
 
 ## What it does
 
-- **Counts real screen time.** It only counts minutes you're actually using the Mac. Step away for 5 minutes and that counts as a break.
-- **Blocks the screen when it's break time.** A calm full-screen overlay covers every display, with a breathing guide, a countdown and tips. You get a heads-up 2 minutes before.
-- **Exceptions for important work.** Choose 5–25 minutes, say why, and it comes out of a small daily budget (3/day by default). A hard cap of 120 min continuous work applies even with exceptions.
-- **Meeting-aware.** If the camera or mic is in use, a calendar event is happening, or you've switched on "I'm in a meeting", the break waits until the call ends. Works with Zoom, Meet, Teams, Slack, FaceTime and others.
-- **Strict mode** hides the Dock and menu bar and blocks ⌘-Tab during breaks.
-- **History**: screen time, breaks taken or skipped, every exception and its reason, and a daily balance score.
+![Ebb](docs/images/00-ebb.png)
+
+![Smart screen time](docs/images/01-screen-time.png)
+![Gentle heads-up](docs/images/02-heads-up.png)
+![Full-screen break](docs/images/03-break-screen.png)
+![Exceptions](docs/images/04-exceptions.png)
+![Meeting-aware](docs/images/05-meetings.png)
+![Strict mode](docs/images/06-strict-mode.png)
+![History and balance](docs/images/07-history.png)
 
 Full design, state machine and roadmap: **[docs/PRODUCT.md](docs/PRODUCT.md)**.
 
