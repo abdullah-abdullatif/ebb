@@ -6,19 +6,13 @@ struct EbbApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            MenuBarView()
+            MenuBarView(openSettings: { app.settings.show() })
                 .environmentObject(app.engine)
                 .environmentObject(app.stats)
         } label: {
             MenuBarLabel(engine: app.engine)
         }
         .menuBarExtraStyle(.window)
-
-        Settings {
-            SettingsView()
-                .environmentObject(app.prefs)
-                .environmentObject(app.stats)
-        }
     }
 }
 
@@ -27,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let prefs = PreferencesStore()
     let stats = StatsStore()
     lazy var engine = SessionEngine(prefsStore: prefs, stats: stats)
+    lazy var settings = SettingsWindowController(prefs: prefs, stats: stats)
     private var activity: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {

@@ -23,6 +23,7 @@ struct MenuBarLabel: View {
 }
 
 struct MenuBarView: View {
+    var openSettings: () -> Void
     @EnvironmentObject private var engine: SessionEngine
     @EnvironmentObject private var stats: StatsStore
 
@@ -139,8 +140,7 @@ struct MenuBarView: View {
 
     private var footer: some View {
         HStack {
-            SettingsLink { Text("Settings…") }
-                .simultaneousGesture(TapGesture().onEnded { NSApp.activate(ignoringOtherApps: true) })
+            Button("Settings…", action: openSettings)
             Spacer()
             Button("Quit Ebb") { NSApp.terminate(nil) }
         }
