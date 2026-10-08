@@ -17,6 +17,21 @@ A macOS menu-bar app that makes you take screen breaks, lets you ask for more ti
 
 Full design, state machine and roadmap: **[docs/PRODUCT.md](docs/PRODUCT.md)**.
 
+## Install (no coding needed)
+
+1. Download **Ebb.zip** from the latest release on the [Releases page](../../releases/latest), then unzip it.
+2. Drag **Ebb** into **Applications** and open it.
+3. The first time, macOS blocks it because the developer isn't verified. Go to **System Settings → Privacy & Security** and click **Open Anyway**.
+
+Needs macOS 14+, and works on Apple Silicon and Intel Macs.
+
+## Publishing a new version
+
+```bash
+git tag v0.2.0 && git push origin v0.2.0
+```
+GitHub Actions then tests the code, builds a universal `Ebb.app`, and publishes a release with `Ebb.zip` attached.
+
 ## Build & run (on your Mac)
 
 Needs macOS 14+ and Xcode 15+ (or just the Command Line Tools: `xcode-select --install`).

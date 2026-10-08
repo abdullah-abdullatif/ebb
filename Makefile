@@ -1,7 +1,12 @@
-.PHONY: app run test install clean
+.PHONY: app zip run test install clean
 
 app:
 	scripts/build-app.sh
+
+# Shareable zip; ditto keeps the code signature intact.
+zip: app
+	rm -f build/Ebb.zip
+	ditto -c -k --keepParent build/Ebb.app build/Ebb.zip
 
 run: app
 	open build/Ebb.app
