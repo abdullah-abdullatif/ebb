@@ -1,4 +1,4 @@
-.PHONY: app zip run test install clean
+.PHONY: app zip run test smoke install clean
 
 app:
 	scripts/build-app.sh
@@ -13,6 +13,10 @@ run: app
 
 test:
 	swift test
+
+# Runs the built app through a sped-up work → break → work cycle (~70 s).
+smoke: app
+	scripts/smoke-test.sh
 
 # Launch-at-login (SMAppService) works best from /Applications.
 install: app

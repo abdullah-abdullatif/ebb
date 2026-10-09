@@ -28,10 +28,14 @@ final class SessionEngine: ObservableObject {
         static let info = "ebb.info"
     }
 
+    /// `EBB_SMOKE_TEST=1`: used by CI to run the real app unattended. A "minute" lasts one
+    /// second, input is treated as constant, and every clock event is logged as `EBB_EVENT …`.
+    nonisolated static let isSmokeTest = ProcessInfo.processInfo.environment["EBB_SMOKE_TEST"] == "1"
+
     init(prefsStore: PreferencesStore, stats: StatsStore) {
         self.prefsStore = prefsStore
         self.stats = stats
-        self.clock = SessionClock(prefs: prefsStore.prefs)
+        self.clock = SessionClock(prefs: prefsStore.prefs, minuteLength: Self.isSmokeTest ? 1 : 60)
         clock.restoreExceptionsUsed(stats.today.exceptions.count)
     }
 
@@ -84,7 +88,7 @@ final class SessionEngine: ObservableObject {
             if fresh != meeting { meeting = fresh }
         }
 
-        let idle = ActivityMonitor.idleSeconds()
+        let idle = Self.isSmokeTest ? 0 : ActivityMonitor.idleSeconds()
         let events = clock.tick(TickInput(idleSeconds: idle, inMeeting: meeting.inMeeting, now: now))
 
         recordTime(idle: idle)
@@ -125,6 +129,7 @@ final class SessionEngine: ObservableObject {
 
     private func handle(_ events: [ClockEvent]) {
         for event in events {
+            if Self.isSmokeTest { NSLog("EBB_EVENT %@", String(describing: event)) }
             switch event {
             case .warning(let left):
                 notifier.post(id: NotificationID.warning,

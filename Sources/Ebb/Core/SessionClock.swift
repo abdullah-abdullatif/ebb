@@ -59,11 +59,19 @@ struct SessionClock {
     private(set) var breakDueAt: Int
     private(set) var exceptionsUsedToday = 0
     private var warned = false
+    /// Seconds in one "minute" of the preferences. 60 in real life; tiny in smoke tests.
+    let minuteLength: Int
 
-    init(prefs: Preferences) {
+    init(prefs: Preferences, minuteLength: Int = 60) {
         self.prefs = prefs
-        self.breakDueAt = prefs.workSeconds
+        self.minuteLength = minuteLength
+        self.breakDueAt = prefs.workMinutes * minuteLength
     }
+
+    private var workSeconds: Int { prefs.workMinutes * minuteLength }
+    private var breakSeconds: Int { prefs.breakMinutes * minuteLength }
+    private var naturalBreakSeconds: Int { prefs.naturalBreakMinutes * minuteLength }
+    private var hardCapSeconds: Int { prefs.hardCapMinutes * minuteLength }
 
     var secondsUntilBreak: Int { max(0, breakDueAt - workedSeconds) }
     var exceptionsLeftToday: Int { max(0, prefs.exceptionsPerDay - exceptionsUsedToday) }
@@ -110,7 +118,7 @@ struct SessionClock {
         case .postMeetingGrace(let remaining):
             if input.inMeeting {
                 phase = .meetingHold
-            } else if input.idleSeconds >= Double(prefs.naturalBreakSeconds) {
+            } else if input.idleSeconds >= Double(naturalBreakSeconds) {
                 events.append(.naturalBreak(workedSeconds: workedSeconds))
                 resetCycle()
                 phase = .away
@@ -128,7 +136,7 @@ struct SessionClock {
         // Sitting silently in a call is still screen time, not a break.
         let idle = input.inMeeting ? 0 : input.idleSeconds
 
-        if idle >= Double(prefs.naturalBreakSeconds) {
+        if idle >= Double(naturalBreakSeconds) {
             if phase != .away {
                 if workedSeconds > 0 { events.append(.naturalBreak(workedSeconds: workedSeconds)) }
                 resetCycle()
@@ -165,7 +173,7 @@ struct SessionClock {
 
     /// The Mac slept or the app was suspended for `seconds`. Long gaps count as a break.
     mutating func registerGap(seconds: Int) -> [ClockEvent] {
-        guard seconds >= prefs.naturalBreakSeconds else { return [] }
+        guard seconds >= naturalBreakSeconds else { return [] }
         if case .paused = phase { return [] }
         var events: [ClockEvent] = []
         if phase.isOnBreak {
@@ -205,7 +213,7 @@ struct SessionClock {
     /// Longest exception that would still respect the hard cap, in whole minutes.
     var maxExceptionMinutes: Int {
         let base = max(breakDueAt, workedSeconds)
-        return max(0, (prefs.hardCapSeconds - base) / 60)
+        return max(0, (hardCapSeconds - base) / minuteLength)
     }
 
     func checkException(minutes: Int) -> ExceptionDenial? {
@@ -221,7 +229,7 @@ struct SessionClock {
         if let denial = checkException(minutes: minutes) { return .failure(denial) }
         var events: [ClockEvent] = []
         let wasOnBreak = phase.isOnBreak
-        breakDueAt = max(breakDueAt, workedSeconds) + minutes * 60
+        breakDueAt = max(breakDueAt, workedSeconds) + minutes * minuteLength
         exceptionsUsedToday += 1
         warned = false
         phase = .working
@@ -234,9 +242,10 @@ struct SessionClock {
 
     mutating func updatePrefs(_ new: Preferences) {
         // Only move the due point if no exception has stretched it.
-        if breakDueAt == prefs.workSeconds { breakDueAt = new.workSeconds }
-        if case .onBreak(let remaining) = phase, new.breakSeconds < remaining {
-            phase = .onBreak(remaining: new.breakSeconds)
+        if breakDueAt == workSeconds { breakDueAt = new.workMinutes * minuteLength }
+        let newBreak = new.breakMinutes * minuteLength
+        if case .onBreak(let remaining) = phase, newBreak < remaining {
+            phase = .onBreak(remaining: newBreak)
         }
         prefs = new
     }
@@ -249,7 +258,7 @@ struct SessionClock {
     // MARK: Private
 
     private mutating func startBreak() -> [ClockEvent] {
-        phase = .onBreak(remaining: prefs.breakSeconds)
+        phase = .onBreak(remaining: breakSeconds)
         return [.breakStarted]
     }
 
@@ -261,7 +270,7 @@ struct SessionClock {
 
     private mutating func resetCycle() {
         workedSeconds = 0
-        breakDueAt = prefs.workSeconds
+        breakDueAt = workSeconds
         warned = false
     }
 }

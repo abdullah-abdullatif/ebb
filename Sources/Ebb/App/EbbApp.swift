@@ -30,6 +30,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             options: [.userInitiatedAllowingIdleSystemSleep],
             reason: "Tracking work and break time")
         engine.start()
+        if SessionEngine.isSmokeTest {
+            NSLog("EBB_EVENT launched")
+            settings.show()
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {

@@ -18,7 +18,7 @@ A macOS menu-bar app that makes you take screen breaks, lets you ask for more ti
 ![Strict mode](docs/images/06-strict-mode.png)
 ![History and balance](docs/images/07-history.png)
 
-Full design, state machine and roadmap: **[docs/PRODUCT.md](docs/PRODUCT.md)**.
+Full design, state machine and roadmap: **[docs/PRODUCT.md](docs/PRODUCT.md)**. How it is tested: **[docs/TESTING.md](docs/TESTING.md)**.
 
 ## Install (no coding needed)
 

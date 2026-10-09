@@ -1,6 +1,6 @@
 name: Build
 
-# Every push: compile + test, and keep a downloadable Ebb.zip as a workflow artifact.
+# Every push: compile, unit-test, run the real app through a full cycle, and keep a downloadable Ebb.zip as a workflow artifact.
 # Push a tag like v0.1.0: also publish a GitHub Release with Ebb.zip attached.
 on:
   push:
@@ -28,10 +28,19 @@ jobs:
           UNIVERSAL=1 VERSION="$VERSION" scripts/build-app.sh
           ditto -c -k --keepParent build/Ebb.app build/Ebb.zip
 
+      - name: Smoke test the real app
+        run: scripts/smoke-test.sh
+
       - uses: actions/upload-artifact@v4
         with:
           name: Ebb
           path: build/Ebb.zip
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-test
+          path: build/smoke
 
       - name: Publish release
         if: github.ref_type == 'tag'
