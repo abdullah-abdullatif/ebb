@@ -30,10 +30,9 @@ Needs macOS 14+, and works on Apple Silicon and Intel Macs.
 
 ## Publishing a new version
 
-```bash
-git tag v0.2.0 && git push origin v0.2.0
-```
-GitHub Actions then tests the code, builds a universal `Ebb.app`, and publishes a release with `Ebb.zip` attached.
+On GitHub, open **Actions → Build → Run workflow**, type a version such as `0.2.0`, and click **Run workflow**.
+(Or push a tag: `git tag v0.2.0 && git push origin v0.2.0`.)
+GitHub Actions then tests the code, builds a universal `Ebb.app`, runs the smoke test, and publishes a release with `Ebb.zip` attached.
 
 ## Build & run (on your Mac)
 
