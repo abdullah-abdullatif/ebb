@@ -83,10 +83,23 @@ fn cover(w: &WebviewWindow, m: &Monitor) {
 fn raise(w: &WebviewWindow) {
     let _ = w.set_always_on_top(true);
     let _ = w.set_visible_on_all_workspaces(true);
+    raise_above_menu_bar(w);
+}
+
+/// macOS: screen-saver level, above the Dock and menu bar. Tauri applies its own window
+/// settings on the next turn of the event loop, so this is queued behind them.
+fn raise_above_menu_bar(w: &WebviewWindow) {
     #[cfg(target_os = "macos")]
-    if let Ok(ns) = w.ns_window() {
-        crate::platform::raise_overlay(ns);
+    {
+        let w = w.clone();
+        let _ = w.clone().run_on_main_thread(move || {
+            if let Ok(ns) = w.ns_window() {
+                crate::platform::raise_overlay(ns);
+            }
+        });
     }
+    #[cfg(not(target_os = "macos"))]
+    let _ = w;
 }
 
 // MARK: Break screen
@@ -146,6 +159,11 @@ fn tend_break(app: &AppHandle, strict: bool) {
         show_break(app, strict);
         return;
     }
+    for l in &labels {
+        if let Some(w) = app.get_webview_window(l) {
+            raise_above_menu_bar(&w);
+        }
+    }
     if strict {
         // Strict mode: you can't click or Alt-Tab your way out of the break.
         let focused = labels.iter().any(|l| app.get_webview_window(l).is_some_and(|w| w.is_focused().unwrap_or(false)));
@@ -192,11 +210,12 @@ fn show_card(app: &AppHandle, label: &str, page: &str, width: f64, height: f64, 
         let (w_px, margin) = (width * scale, 16.0 * scale);
         // Leave room for the macOS menu bar.
         let top = my + if cfg!(target_os = "macos") { 40.0 * scale } else { margin };
-        let x = match corner {
-            Corner::TopRight => mx + mw - w_px - margin,
-            Corner::TopCenter => mx + (mw - w_px) / 2.0,
+        let (x, y) = match corner {
+            Corner::TopRight => (mx + mw - w_px - margin, top),
+            // Below where toasts appear, so a nudge and an eye break never overlap.
+            Corner::TopCenter => (mx + (mw - w_px) / 2.0, top + 170.0 * scale),
         };
-        let _ = w.set_position(PhysicalPosition::new(x as i32, top as i32));
+        let _ = w.set_position(PhysicalPosition::new(x as i32, y as i32));
     }
     raise(&w);
     let _ = w.show();

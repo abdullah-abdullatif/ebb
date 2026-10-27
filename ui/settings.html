@@ -381,7 +381,7 @@ async function render() {
   const seq = ++renderSeq;
   document.getElementById('nav').replaceChildren(
     el('div', { class: 'brand' }, icon('waves', 20), 'Ebb'),
-    TABS.map(([id, label, ic]) => el('button', { class: id === tab ? 'on' : '', onclick: () => show(id) }, icon(ic, 16), label)),
+    ...TABS.map(([id, label, ic]) => el('button', { class: id === tab ? 'on' : '', onclick: () => show(id) }, icon(ic, 16), label)),
     el('div', { class: 'version muted small' }, `Version ${state.version}`));
   const content = tab === 'today' ? await todayTab() : tab === 'report' ? await reportTab() : formTab(tab);
   if (seq !== renderSeq) return;
