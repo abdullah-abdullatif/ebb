@@ -47,9 +47,8 @@ After that, Ebb keeps itself up to date. (Users of the original 0.1 Mac app: ins
 
 ## Publishing a new version
 
-```bash
-git tag v0.3.0 && git push origin v0.3.0
-```
+On GitHub, open **Actions → Build → Run workflow**, type a version such as `0.3.0`, and click **Run workflow**.
+(Or push a tag: `git tag v0.3.0 && git push origin v0.3.0`.)
 GitHub Actions tests the code on all three systems, builds the installers, and publishes a release with them and a signed `latest.json`. Every installed copy of Ebb picks the update up within a few hours.
 
 **One-time setup:** updates are signed so that nobody else can push one to your users. Add the private key to the repository as a secret named `TAURI_SIGNING_PRIVATE_KEY` (Settings → Secrets and variables → Actions); it lives in `~/.tauri/ebb.key` on the computer that generated it. Keep a backup: if it's lost, existing installs can't verify new updates. The matching public key is in `src-tauri/tauri.conf.json`.

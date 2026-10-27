@@ -2,24 +2,31 @@ name: Build
 
 # Every push: unit-test on macOS, Windows and Linux, build the real app for each, run it
 # through a sped-up work → break → work cycle, and keep the installers as workflow artifacts.
-# Push a tag like v0.3.0: also publish a GitHub Release with installers for every platform
-# and the signed latest.json that installed copies of Ebb update themselves from.
+# To release: push a tag like v0.3.0, or run this workflow from the Actions tab with a version
+# number. Either way a GitHub Release is published with installers for every platform and the
+# signed latest.json that installed copies of Ebb update themselves from.
 on:
   push:
     branches: [main]
     tags: ['v*']
   pull_request:
   workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release, e.g. 0.3.0 (leave empty to just build)
+        required: false
 
 permissions:
   contents: write
 
 env:
   CARGO_TERM_COLOR: always
+  # Set when releasing: the tag pushed, or v + the version typed in the Actions tab.
+  RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || (inputs.version != '' && format('v{0}', inputs.version) || '') }}
 
 jobs:
   create-release:
-    if: github.ref_type == 'tag'
+    if: github.ref_type == 'tag' || inputs.version != ''
     runs-on: ubuntu-latest
     outputs:
       id: ${{ steps.release.outputs.id }}
@@ -29,8 +36,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" --draft --title "Ebb $GITHUB_REF_NAME" --notes-file .github/release-notes.md
-          echo "id=$(gh release view "$GITHUB_REF_NAME" --json databaseId -q .databaseId)" >> "$GITHUB_OUTPUT"
+          gh release create "$RELEASE_TAG" --draft --target "$GITHUB_SHA" --title "Ebb $RELEASE_TAG" --notes-file .github/release-notes.md
+          echo "id=$(gh release view "$RELEASE_TAG" --json databaseId -q .databaseId)" >> "$GITHUB_OUTPUT"
 
   build:
     needs: [create-release]
@@ -79,10 +86,10 @@ jobs:
       - name: Unit tests
         run: cargo test --manifest-path src-tauri/Cargo.toml
 
-      - name: Use the tag as the version
-        if: github.ref_type == 'tag'
+      - name: Use the release version
+        if: env.RELEASE_TAG != ''
         shell: bash
-        run: node -e "const f='src-tauri/tauri.conf.json',c=require('./'+f);c.version=process.env.GITHUB_REF_NAME.replace(/^v/,'');require('fs').writeFileSync(f,JSON.stringify(c,null,2))"
+        run: node -e "const f='src-tauri/tauri.conf.json',c=require('./'+f);c.version=process.env.RELEASE_TAG.replace(/^v/,'');require('fs').writeFileSync(f,JSON.stringify(c,null,2))"
 
       - name: Build (and upload to the release on tags)
         uses: tauri-apps/tauri-action@v0
@@ -123,9 +130,9 @@ jobs:
 
   publish-release:
     needs: [create-release, build]
-    if: github.ref_type == 'tag'
+    if: github.ref_type == 'tag' || inputs.version != ''
     runs-on: ubuntu-latest
     steps:
       - env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false --latest
+        run: gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest
