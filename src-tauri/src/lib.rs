@@ -376,6 +376,25 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
     Ok(())
 }
 
+/// After the smoke test's break, open the windows it has no other way to reach, for screenshots.
+fn smoke_tour(app: &AppHandle, ticks: u32) {
+    let say = |what: &str| println!("EBB_EVENT tour {what}");
+    match ticks {
+        75 => {
+            let h = app.clone();
+            let _ = app.run_on_main_thread(move || ui::toggle_panel(&h, None));
+            say("panel");
+        }
+        82 => {
+            open_settings(app.clone(), Some("report".into()));
+            say("report");
+        }
+        _ => {}
+    }
+    use std::io::Write;
+    let _ = std::io::stdout().flush();
+}
+
 // MARK: Run
 
 pub fn run() {
@@ -436,10 +455,17 @@ pub fn run() {
 
             // The heartbeat: one tick per second.
             let handle = app.handle().clone();
-            std::thread::spawn(move || loop {
-                std::thread::sleep(Duration::from_millis(1000));
-                let fx = shared.lock().unwrap().tick(Local::now());
-                ui::apply(&handle, fx);
+            std::thread::spawn(move || {
+                let mut ticks = 0;
+                loop {
+                    std::thread::sleep(Duration::from_millis(1000));
+                    let fx = shared.lock().unwrap().tick(Local::now());
+                    ui::apply(&handle, fx);
+                    ticks += 1;
+                    if smoke {
+                        smoke_tour(&handle, ticks);
+                    }
+                }
             });
 
             // Updates: shortly after launch, then every few hours.

@@ -36,6 +36,10 @@ wait_for "EBB_EVENT BreakStarted" 70
 sleep 3; shot 3-break-screen
 wait_for "EBB_EVENT BreakEnded { completed: true }" 30
 sleep 3; shot 4-back-to-work
+wait_for "EBB_EVENT tour panel" 30
+sleep 2; shot 5-panel
+wait_for "EBB_EVENT tour report" 30
+sleep 3; shot 6-weekly-report
 alive
 test -s "$OUT/data/stats.json" || sleep 31
 test -s "$OUT/data/stats.json" || { echo "FAIL: stats.json was never written"; exit 1; }
