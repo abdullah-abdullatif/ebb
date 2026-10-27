@@ -271,12 +271,13 @@ pub fn toggle_panel(app: &AppHandle, anchor: Option<(PhysicalPosition<f64>, Phys
     if PANEL_CLOSED_AT.lock().unwrap().is_some_and(|t| t.elapsed() < std::time::Duration::from_millis(300)) {
         return;
     }
-    let (width, height) = (340.0, 560.0);
+    let (width, height) = (340.0, 480.0);
     let Ok(w) = WebviewWindowBuilder::new(app, PANEL, WebviewUrl::App("panel.html".into()))
         .title("Ebb")
         .inner_size(width, height)
         .decorations(false)
         .transparent(true)
+        .shadow(false)
         .resizable(false)
         .skip_taskbar(true)
         .always_on_top(true)
