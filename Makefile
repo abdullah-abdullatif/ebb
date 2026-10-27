@@ -1,28 +1,22 @@
-.PHONY: app zip run test smoke install clean
+.PHONY: dev build test smoke icons clean
 
-app:
-	scripts/build-app.sh
+# Run Ebb from source with live-reloading UI.
+dev:
+	npx tauri dev
 
-# Shareable zip; ditto keeps the code signature intact.
-zip: app
-	rm -f build/Ebb.zip
-	ditto -c -k --keepParent build/Ebb.app build/Ebb.zip
-
-run: app
-	open build/Ebb.app
+# Installers for this OS in src-tauri/target/release/bundle/.
+build:
+	npx tauri build
 
 test:
-	swift test
+	cargo test --manifest-path src-tauri/Cargo.toml
 
 # Runs the built app through a sped-up work → break → work cycle (~70 s).
-smoke: app
-	scripts/smoke-test.sh
+smoke: build
+	scripts/smoke-test.sh src-tauri/target/release/ebb
 
-# Launch-at-login (SMAppService) works best from /Applications.
-install: app
-	rm -rf /Applications/Ebb.app
-	cp -R build/Ebb.app /Applications/
-	open /Applications/Ebb.app
+icons:
+	npx tauri icon Resources/AppIcon.png -o src-tauri/icons
 
 clean:
-	rm -rf build .build
+	rm -rf build src-tauri/target

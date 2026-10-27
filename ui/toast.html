@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ebb</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  html, body { background: transparent; overflow: hidden; }
+  .toast {
+    margin: 8px; padding: 14px 16px; border-radius: 14px; background: var(--card); border: 1px solid var(--line);
+    box-shadow: 0 10px 28px rgba(0,0,0,.22); display: flex; gap: 12px; align-items: flex-start;
+    animation: in .35s cubic-bezier(.2,.9,.3,1.2);
+  }
+  @keyframes in { from { transform: translateY(-14px); opacity: 0; } }
+  .badge { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex: none; color: #fff; }
+  .body { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .title { font-weight: 600; font-size: 13.5px; }
+  .text { color: var(--muted); font-size: 12.5px; }
+  .buttons { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .buttons button { padding: 4px 10px; font-size: 12px; }
+  .close { border: 0; background: none; color: var(--muted); padding: 2px; }
+</style>
+</head>
+<body>
+<script type="module">
+import { invoke, onState, el, icon } from './common.js';
+
+const LOOK = {
+  warning: ['hourglass', 'var(--warn)'], meeting: ['video', 'var(--meet)'], info: ['check', 'var(--tide)'],
+  blink: ['eye', 'var(--tide)'], posture: ['person', 'var(--dusk)'], water: ['drop', '#3a8fd8'], stretch: ['stretch', 'var(--tide)'],
+  limit: ['sun', 'var(--warn)'], windDown: ['moonStar', 'var(--night)'], report: ['chart', 'var(--tide)'], update: ['update', 'var(--tide)'],
+};
+
+let shown = null, timer = null;
+onState((s) => {
+  const t = s.toast;
+  if (!t || t.id === shown) return;
+  shown = t.id;
+  clearTimeout(timer);
+  const [ic, color] = LOOK[t.kind] ?? ['waves', 'var(--tide)'];
+  const dismiss = () => invoke('dismiss_toast', { id: t.id });
+  document.body.replaceChildren(el('div', { class: 'toast' },
+    el('div', { class: 'badge', style: `background:${color}` }, icon(ic, 18)),
+    el('div', { class: 'body' },
+      el('div', { class: 'title' }, t.title),
+      el('div', { class: 'text' }, t.body),
+      t.actions.length ? el('div', { class: 'buttons' }, t.actions.map((a, i) =>
+        el('button', { class: i === 0 ? 'primary' : '', onclick: () => invoke('toast_action', { id: t.id, action: a.id }) }, a.label))) : null),
+    el('button', { class: 'close', title: 'Dismiss', onclick: dismiss }, icon('x', 14))));
+  if (t.seconds) timer = setTimeout(dismiss, t.seconds * 1000);
+});
+</script>
+</body>
+</html>

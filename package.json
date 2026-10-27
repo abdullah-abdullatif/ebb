@@ -1,0 +1,15 @@
+{
+  "name": "ebb",
+  "private": true,
+  "version": "0.2.0",
+  "description": "Work in flow, rest in ebb.",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "test": "cargo test --manifest-path src-tauri/Cargo.toml"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}

@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ebb Settings</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  :root { --bar: #008f94; }
+  @media (prefers-color-scheme: dark) { :root { --bar: #00a3a6; } }
+  body { display: flex; }
+  nav { width: 190px; flex: none; padding: 18px 10px; border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
+  nav .brand { display: flex; align-items: center; gap: 8px; padding: 0 10px 14px; font-weight: 600; font-size: 15px; color: var(--tide); }
+  nav button { border: 0; background: none; text-align: left; display: flex; gap: 10px; align-items: center; padding: 7px 10px; border-radius: 8px; }
+  nav button.on { background: color-mix(in srgb, var(--tide) 16%, transparent); color: var(--tide); font-weight: 600; }
+  nav .version { margin-top: auto; padding: 0 10px; }
+  main { flex: 1; overflow-y: auto; padding: 24px 28px 40px; display: flex; flex-direction: column; gap: 18px; }
+  section.group { display: flex; flex-direction: column; gap: 0; }
+  section.group > h3 { margin: 4px 0 8px; color: var(--muted); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; }
+  .rows { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); }
+  .setting { display: flex; align-items: center; gap: 14px; padding: 11px 14px; border-top: 1px solid var(--line); }
+  .setting:first-child { border-top: 0; }
+  .setting .what { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+  .setting .help { color: var(--muted); font-size: 11.5px; }
+  .setting input[type=number] { width: 74px; text-align: right; }
+  .setting .unit { color: var(--muted); min-width: 28px; }
+  .setting input[type=range] { width: 160px; accent-color: var(--tide); }
+  .note { color: var(--muted); font-size: 12px; padding: 8px 2px 0; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
+  .kpi .v { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .kpi .l { color: var(--muted); font-size: 11.5px; }
+  .kpi .d { font-size: 11.5px; margin-top: 2px; }
+  .chart { position: relative; }
+  .chart svg { display: block; width: 100%; overflow: visible; }
+  .chart .tip { position: absolute; pointer-events: none; background: var(--text); color: var(--bg); padding: 6px 9px; border-radius: 7px; font-size: 11.5px; white-space: nowrap; transform: translate(-50%, -100%); }
+  .tips li { margin: 0 0 8px; }
+  .tips { margin: 0; padding-left: 18px; }
+  .score-big { font-size: 44px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1; }
+  .parts { display: grid; grid-template-columns: 130px 1fr 54px; gap: 8px 12px; align-items: center; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 7px 8px; border-top: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 500; font-size: 11.5px; border-top: 0; }
+  details summary { cursor: pointer; color: var(--muted); }
+</style>
+</head>
+<body>
+<nav id="nav"></nav>
+<main id="main"></main>
+<script type="module">
+import { invoke, onState, listen, el, icon, clock, hm } from './common.js';
+
+const TABS = [
+  ['today', 'Today', 'heart'],
+  ['report', 'Weekly report', 'chart'],
+  ['rhythm', 'Rhythm', 'waves'],
+  ['wellbeing', 'Eyes & body', 'eye'],
+  ['night', 'Limits & night', 'moonStar'],
+  ['exceptions', 'Exceptions', 'bolt'],
+  ['meetings', 'Meetings', 'video'],
+  ['system', 'System & updates', 'gear'],
+];
+
+let state = null;
+let tab = location.hash.slice(1) || 'today';
+let weeksAgo = 0;
+
+listen('ebb://tab', (e) => show(e.payload));
+window.addEventListener('hashchange', () => show(location.hash.slice(1)));
+
+function show(name) {
+  tab = TABS.some((t) => t[0] === name) ? name : 'today';
+  if (location.hash.slice(1) !== tab) history.replaceState(null, '', `#${tab}`);
+  render();
+}
+
+// MARK: Settings schema
+
+const minutesOfDay = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+
+/** Every setting, grouped per tab. `scale` converts stored value → shown value (seconds → minutes). */
+const FORMS = {
+  rhythm: [
+    ['Work & rest', [
+      { key: 'workMinutes', label: 'Work for', unit: 'min', min: 1, max: 240, step: 5 },
+      { key: 'breakMinutes', label: 'Then take a break of', unit: 'min', min: 1, max: 60 },
+      { key: 'warningSeconds', label: 'Heads-up before a break', unit: 'min', min: 0, max: 15, scale: 60 },
+    ]],
+    ['When you stop touching the keyboard', [
+      { key: 'passiveGraceMinutes', label: 'Keep counting without input for', unit: 'min', min: 1, max: 120,
+        help: "Reading, watching a build or a long job? Ebb still counts it as screen time for this long. If you've actually left, that time is taken back off." },
+      { key: 'countMediaAsScreenTime', label: 'Playing videos always count as screen time', type: 'toggle',
+        help: 'When a video keeps the display awake (YouTube, Netflix, VLC…), the clock keeps running however long you watch.' },
+      { key: 'naturalBreakMinutes', label: 'Away this long counts as a break', unit: 'min', min: 1, max: 60,
+        help: 'Locking the screen or putting the computer to sleep pauses the clock at once. Stay away this long and a fresh cycle starts.' },
+    ]],
+    ['Enforcement', [
+      { key: 'strictMode', label: 'Strict mode', type: 'toggle',
+        help: 'No skip button, and the break screen keeps focus. On macOS it also hides the Dock and menu bar and blocks ⌘-Tab. Exceptions still work.' },
+      { key: 'emergencySkipHoldSeconds', label: 'Hold the skip button for', unit: 's', min: 1, max: 15, hideIf: (p) => p.strictMode },
+    ]],
+  ],
+  wellbeing: [
+    ['20-20-20 eye breaks', [
+      { key: 'eyeBreaksEnabled', label: 'Eye breaks', type: 'toggle',
+        help: 'Every 20 minutes, look at something 20 feet (6 m) away for 20 seconds. The most effective habit against digital eye strain.' },
+      { key: 'eyeBreakEveryMinutes', label: 'Every', unit: 'min', min: 5, max: 120, hideIf: (p) => !p.eyeBreaksEnabled },
+      { key: 'eyeBreakSeconds', label: 'For', unit: 's', min: 5, max: 120, step: 5, hideIf: (p) => !p.eyeBreaksEnabled },
+    ]],
+    ['Gentle nudges', [
+      { key: 'blink', label: 'Blink', type: 'nudge', help: 'We blink far less while looking at screens, which dries the eyes.' },
+      { key: 'posture', label: 'Posture check', type: 'nudge' },
+      { key: 'water', label: 'Drink water', type: 'nudge' },
+      { key: 'stretch', label: 'Stand up and stretch', type: 'nudge' },
+    ]],
+    ['Mind', [
+      { key: 'moodCheckIn', label: 'Ask how I feel on breaks', type: 'toggle',
+        help: 'One tap on the break screen. Your weekly report shows how your mood moves with your screen habits.' },
+    ]],
+  ],
+  night: [
+    ['Daily screen-time limit', [
+      { key: 'dailyLimitEnabled', label: 'Daily limit', type: 'toggle', help: "A heads-up at 90%, then a reminder every 30 minutes once you're over." },
+      { key: 'dailyLimitMinutes', label: 'Limit', unit: 'h', min: 0.5, max: 24, step: 0.5, scale: 60, hideIf: (p) => !p.dailyLimitEnabled },
+    ]],
+    ['Night wind-down', [
+      { key: 'windDownEnabled', label: 'Wind down at night', type: 'toggle',
+        help: 'Warms and dims the screen and reminds you to stop. Late-night screen time is tracked either way, using these hours.' },
+      { key: 'windDownStart', label: 'From', type: 'time' },
+      { key: 'windDownEnd', label: 'Until', type: 'time' },
+      { key: 'windDownDim', label: 'Dim and warm the screen', type: 'range', min: 0, max: 0.6, step: 0.05, hideIf: (p) => !p.windDownEnabled },
+    ]],
+  ],
+  exceptions: [
+    ['"I\'m in the middle of something"', [
+      { key: 'exceptionsPerDay', label: 'Exceptions per day', min: 0, max: 20 },
+      { key: 'exceptionChoicesMinutes', label: 'Choices offered', type: 'list', unit: 'min' },
+      { key: 'requireExceptionReason', label: 'Require a reason', type: 'toggle' },
+      { key: 'hardCapMinutes', label: 'Never more than this much straight', unit: 'min', min: 30, max: 480, step: 15,
+        help: 'Applies even with exceptions: no one should stare at a screen for three hours.' },
+    ]],
+  ],
+  meetings: [
+    ['Treat me as "in a meeting" when…', [
+      { key: 'detectCamera', label: 'A camera is on', type: 'toggle' },
+      { key: 'detectMicrophone', label: 'A microphone is in use', type: 'toggle' },
+      { key: 'detectCalendar', label: 'A calendar event is happening now', type: 'toggle', macOnly: true },
+    ]],
+    ['After the meeting', [
+      { key: 'postMeetingGraceSeconds', label: 'Start the break this long after it ends', unit: 's', min: 0, max: 900, step: 30 },
+    ]],
+  ],
+  system: [
+    ['General', [
+      { key: 'launchAtLogin', label: 'Open Ebb when I log in', type: 'toggle' },
+      { key: 'showTimerInMenuBar', label: 'Show the countdown next to the tray icon', type: 'toggle', help: 'Next to the icon on macOS and Linux; in the tooltip on Windows.' },
+    ]],
+    ['Updates', [
+      { key: 'autoUpdate', label: 'Update automatically', type: 'toggle',
+        help: 'New versions download in the background and install the next time you step away, or when you click Restart.' },
+    ]],
+  ],
+};
+
+const NOTES = {
+  meetings: 'Works with Zoom, Meet, Teams, Slack huddles, FaceTime: anything that uses the camera or mic. Ebb never records or opens your devices; it only asks the system whether they are in use.',
+};
+
+function save(change) {
+  const p = structuredClone(state.prefs);
+  change(p);
+  state.prefs = p;
+  invoke('set_prefs', { prefs: p });
+}
+
+function control(f, p) {
+  const val = p[f.key];
+  const scale = f.scale ?? 1;
+  const num = (value, set, opts = f) => el('input', {
+    type: 'number', min: opts.min, max: opts.max, step: opts.step ?? 1, value,
+    onchange: (e) => { const n = Number(e.target.value); if (!Number.isNaN(n)) save((q) => set(q, n)); },
+  });
+  const toggle = (checked, set) => el('label', { class: 'switch' },
+    el('input', { type: 'checkbox', checked, onchange: (e) => save((q) => set(q, e.target.checked)) }), el('span'));
+  switch (f.type) {
+    case 'toggle': return [toggle(val, (q, v) => { q[f.key] = v; })];
+    case 'time': return [el('input', {
+      type: 'time', value: minutesOfDay(val),
+      onchange: (e) => { const [h, m] = e.target.value.split(':').map(Number); if (!Number.isNaN(h)) save((q) => { q[f.key] = h * 60 + (m || 0); }); },
+    })];
+    case 'range': return [el('input', { type: 'range', min: f.min, max: f.max, step: f.step, value: val,
+      oninput: (e) => save((q) => { q[f.key] = Number(e.target.value); }) }), el('span', { class: 'unit' }, `${Math.round(val * 100)}%`)];
+    case 'nudge': return [
+      el('span', { class: 'muted' }, 'every'),
+      num(val.everyMinutes, (q, n) => { q[f.key].everyMinutes = n; }, { min: 1, max: 240 }),
+      el('span', { class: 'unit' }, 'min'),
+      toggle(val.enabled, (q, v) => { q[f.key].enabled = v; }),
+    ];
+    case 'list': return [el('input', { type: 'text', value: val.join(', '), style: 'width:140px',
+      onchange: (e) => save((q) => { q[f.key] = e.target.value.split(/[,\s]+/).map(Number).filter((n) => n > 0); }) }),
+      el('span', { class: 'unit' }, f.unit)];
+    default: return [num(Math.round((val / scale) * 100) / 100, (q, n) => { q[f.key] = Math.round(n * scale); }), el('span', { class: 'unit' }, f.unit)];
+  }
+}
+
+function formTab(name) {
+  const p = state.prefs;
+  const groups = FORMS[name].map(([title, fields]) => {
+    const rows = fields
+      .filter((f) => !(f.hideIf && f.hideIf(p)) && !(f.macOnly && !state.calendarSupported))
+      .map((f) => el('div', { class: 'setting' },
+        el('div', { class: 'what' }, el('span', {}, f.label), f.help ? el('span', { class: 'help' }, f.help) : null),
+        control(f, p)));
+    return el('section', { class: 'group' }, el('h3', {}, title), el('div', { class: 'rows' }, rows));
+  });
+  if (name === 'meetings' && !state.calendarSupported) groups.push(el('p', { class: 'note' }, 'Calendar detection is available on macOS. Elsewhere, use "I\'m in a meeting" in the tray menu for calls without camera or mic.'));
+  if (NOTES[name]) groups.push(el('p', { class: 'note' }, NOTES[name]));
+  if (name === 'system') groups.push(updatesBox(), el('div', { class: 'row' },
+    el('button', { onclick: (e) => {
+      // Two clicks, since the webview has no confirm dialog everywhere.
+      if (e.target.dataset.sure) invoke('reset_prefs'); else { e.target.dataset.sure = '1'; e.target.textContent = 'Click again to restore all defaults'; }
+    } }, 'Restore defaults')));
+  return groups;
+}
+
+function updatesBox() {
+  const u = state.update;
+  const status = {
+    idle: 'Ebb checks for new versions every few hours.',
+    checking: 'Checking for updates…',
+    upToDate: `You have the latest version (${state.version}).`,
+    available: `Ebb ${u.version} is available.`,
+    downloading: `Downloading Ebb ${u.version}… ${u.percent}%`,
+    ready: `Ebb ${u.version} is downloaded and ready.`,
+    error: "Couldn't reach the update server. Ebb will try again later.",
+  }[u.kind];
+  return el('div', { class: 'card row between' },
+    el('div', {}, el('div', {}, `Ebb ${state.version}`), el('div', { class: 'muted small' }, status)),
+    u.kind === 'ready' || u.kind === 'available'
+      ? el('button', { class: 'primary', onclick: () => invoke('install_update') }, u.kind === 'ready' ? 'Restart to update' : 'Update now')
+      : el('button', { onclick: () => invoke('check_updates'), disabled: u.kind === 'checking' || u.kind === 'downloading' }, 'Check now'));
+}
+
+// MARK: Today
+
+async function todayTab() {
+  const s = state, t = s.today, w = s.todayWellbeing;
+  const history = await invoke('get_history', { limit: 14 });
+  const parts = el('div', { class: 'parts' }, w.parts.flatMap((p) => [
+    el('span', {}, p.label),
+    el('div', { class: 'bar' }, el('div', { style: `width:${(p.points / p.max) * 100}%` })),
+    el('span', { class: 'muted small mono', style: 'text-align:right' }, `${Math.round(p.points)}/${p.max}`),
+  ]));
+  const kpi = (v, l) => el('div', { class: 'kpi' }, el('div', { class: 'v' }, v), el('div', { class: 'l' }, l));
+  return [
+    el('div', { class: 'row between' }, el('h1', {}, 'Today'), el('span', { class: 'muted' }, new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' }))),
+    el('div', { class: 'card row', style: 'gap:28px;align-items:flex-start' },
+      el('div', {}, el('div', { class: 'score-big' }, t.activeSeconds ? w.score : '–'), el('div', { class: 'muted small' }, 'Wellness score')),
+      el('div', { class: 'grow' }, t.activeSeconds ? parts : el('p', { class: 'muted' }, 'Your score appears once you start using the computer today.'))),
+    el('div', { class: 'kpis' },
+      kpi(hm(t.activeSeconds), 'Screen time'),
+      kpi(t.breaksCompleted + t.naturalBreaks, `Breaks (${t.breaksSkipped} skipped)`),
+      kpi(t.eyeBreaksTaken, `Eye breaks (${t.eyeBreaksSkipped} skipped)`),
+      kpi(hm(t.longestStretchSeconds), 'Longest stretch')),
+    el('div', { class: 'kpis' },
+      kpi(hm(t.meetingSeconds), 'In meetings'),
+      kpi(hm(t.passiveSeconds), 'Reading / watching'),
+      kpi(hm(t.lateNightSeconds), 'Late at night'),
+      kpi(t.exceptions.length, 'Exceptions used')),
+    historyTable(history),
+  ];
+}
+
+function historyTable(history) {
+  if (!history.length) return el('p', { class: 'muted' }, 'No history yet. Your days will show up here.');
+  return el('section', { class: 'group' }, el('h3', {}, 'History'), el('div', { class: 'rows', style: 'padding:4px 6px' },
+    el('table', {},
+      el('tr', {}, ['Day', 'Screen', 'Meetings', 'Breaks', 'Skipped', 'Eye breaks', 'Score'].map((h) => el('th', {}, h))),
+      history.map(({ stats: d, wellbeing }) => [
+        el('tr', {},
+          el('td', {}, d.day), el('td', {}, hm(d.activeSeconds)), el('td', {}, hm(d.meetingSeconds)),
+          el('td', {}, d.breaksCompleted + d.naturalBreaks), el('td', {}, d.breaksSkipped),
+          el('td', {}, d.eyeBreaksTaken), el('td', {}, d.activeSeconds ? wellbeing.score : '–')),
+        d.exceptions.length ? el('tr', {}, el('td', { colspan: 7, class: 'muted small' },
+          d.exceptions.map((e) => `${new Date(e.date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} +${e.minutes} min · ${e.category}${e.reason ? ` · ${e.reason}` : ''}`).join('   '))) : null,
+      ]))));
+}
+
+// MARK: Weekly report
+
+async function reportTab() {
+  const r = await invoke('get_week_report', { weeksAgo });
+  const range = `${fmtDay(r.days[0].day)} – ${fmtDay(r.days[6].day)}`;
+  const delta = r.averageScore != null && r.previousAverageScore != null ? r.averageScore - r.previousAverageScore : null;
+  const kpi = (v, l, d) => el('div', { class: 'kpi' }, el('div', { class: 'v' }, v), el('div', { class: 'l' }, l), d ?? null);
+  const moodFace = (m) => (m == null ? '–' : ['😣', '😕', '😐', '🙂', '😄'][Math.round(m) - 1] + ` ${m.toFixed(1)}`);
+  return [
+    el('div', { class: 'row between' },
+      el('h1', {}, weeksAgo === 0 ? 'This week' : weeksAgo === 1 ? 'Last week' : `${weeksAgo} weeks ago`),
+      el('div', { class: 'row' },
+        el('button', { onclick: () => { weeksAgo += 1; render(); } }, '←'),
+        el('span', { class: 'muted mono' }, range),
+        el('button', { disabled: weeksAgo === 0, onclick: () => { weeksAgo -= 1; render(); } }, '→'))),
+    el('div', { class: 'kpis' },
+      kpi(r.averageScore ?? '–', 'Average wellness',
+        delta == null ? null : el('div', { class: 'd', style: `color:${delta >= 0 ? 'var(--tide)' : 'var(--warn)'}` }, `${delta >= 0 ? '▲' : '▼'} ${Math.abs(delta)} vs week before`)),
+      kpi(hm(r.averageSeconds), 'Screen time per day'),
+      kpi(`${r.breaksTaken}`, `Breaks taken (${r.breaksSkipped} skipped)`),
+      kpi(moodFace(r.averageMood), 'Average mood')),
+    el('section', { class: 'group' }, el('h3', {}, 'Screen time per day'), el('div', { class: 'card' }, weekChart(r))),
+    el('div', { class: 'kpis' },
+      kpi(hm(r.totalSeconds), 'Total screen time'),
+      kpi(`${r.eyeBreaksTaken}`, `Eye breaks (${r.eyeBreaksSkipped} skipped)`),
+      kpi(hm(r.lateNightSeconds), 'Late at night'),
+      kpi(hm(r.longestStretchSeconds), 'Longest stretch')),
+    el('section', { class: 'group' }, el('h3', {}, 'Suggestions'),
+      el('div', { class: 'card' }, el('ul', { class: 'tips' }, r.tips.map((t) => el('li', {}, t))))),
+  ];
+}
+
+function fmtDay(key) {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+
+/** One series (screen time) as bars; each day's wellness score is a text row underneath, not a second axis. */
+function weekChart(r) {
+  const W = 640, H = 230, top = 12, bottom = 54, left = 40;
+  const plotH = H - top - bottom, plotW = W - left;
+  const maxH = Math.max(1, ...r.days.map((d) => d.activeSeconds / 3600));
+  const niceMax = Math.max(2, Math.ceil(maxH / 2) * 2);
+  const step = plotW / r.days.length, barW = Math.min(44, step * 0.56);
+  const y = (h) => top + plotH * (1 - h / niceMax);
+  const ticks = Array.from({ length: niceMax / 2 + 1 }, (_, i) => i * 2).filter((t, _, a) => a.length <= 7 || t % 4 === 0);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Screen time per day">`;
+  for (const t of ticks) {
+    svg += `<line x1="${left}" x2="${W}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)" stroke-width="1"/>`;
+    svg += `<text x="${left - 8}" y="${y(t) + 4}" text-anchor="end" font-size="11" fill="var(--muted)">${t}h</text>`;
+  }
+  r.days.forEach((d, i) => {
+    const cx = left + step * i + step / 2, h = d.activeSeconds / 3600;
+    const bh = Math.max(0, plotH * (h / niceMax)), x = cx - barW / 2, by = top + plotH - bh;
+    if (bh > 0) {
+      // Rounded top, square at the baseline.
+      const rr = Math.min(4, bh, barW / 2);
+      svg += `<path d="M${x},${top + plotH} V${by + rr} Q${x},${by} ${x + rr},${by} H${x + barW - rr} Q${x + barW},${by} ${x + barW},${by + rr} V${top + plotH} Z" fill="var(--bar)"/>`;
+    }
+    svg += `<rect class="hit" data-i="${i}" x="${cx - step / 2}" y="${top}" width="${step}" height="${plotH}" fill="transparent"/>`;
+    svg += `<text x="${cx}" y="${H - bottom + 18}" text-anchor="middle" font-size="11.5" fill="var(--text)">${d.weekday}</text>`;
+    svg += `<text x="${cx}" y="${H - bottom + 36}" text-anchor="middle" font-size="11" fill="var(--muted)">${d.activeSeconds ? d.score : '–'}</text>`;
+  });
+  svg += `<text x="${left - 8}" y="${H - bottom + 36}" text-anchor="end" font-size="10.5" fill="var(--muted)">score</text>`;
+  svg += `<line x1="${left}" x2="${W}" y1="${top + plotH}" y2="${top + plotH}" stroke="var(--muted)" stroke-opacity=".5"/></svg>`;
+
+  const tip = el('div', { class: 'tip', hidden: true });
+  const wrap = el('div', { class: 'chart', html: svg });
+  wrap.append(tip);
+  wrap.querySelectorAll('.hit').forEach((hit) => {
+    hit.addEventListener('mouseenter', () => {
+      const d = r.days[Number(hit.dataset.i)];
+      const box = hit.getBoundingClientRect(), outer = wrap.getBoundingClientRect();
+      tip.textContent = `${d.weekday} ${fmtDay(d.day)} · ${hm(d.activeSeconds)}${d.activeSeconds ? ` · wellness ${d.score}` : ''}${d.mood != null ? ` · mood ${d.mood.toFixed(1)}` : ''}`;
+      tip.style.left = `${box.left - outer.left + box.width / 2}px`;
+      tip.style.top = `${box.top - outer.top + 8}px`;
+      tip.hidden = false;
+      hit.setAttribute('fill', 'color-mix(in srgb, var(--text) 5%, transparent)');
+    });
+    hit.addEventListener('mouseleave', () => { tip.hidden = true; hit.setAttribute('fill', 'transparent'); });
+  });
+  const table = el('details', {}, el('summary', { class: 'small' }, 'Show as table'),
+    el('table', {}, el('tr', {}, ['Day', 'Screen time', 'Wellness', 'Mood'].map((h) => el('th', {}, h))),
+      r.days.map((d) => el('tr', {}, el('td', {}, `${d.weekday} ${fmtDay(d.day)}`), el('td', {}, hm(d.activeSeconds)),
+        el('td', {}, d.activeSeconds ? d.score : '–'), el('td', {}, d.mood != null ? d.mood.toFixed(1) : '–')))));
+  return el('div', { class: 'stack' }, wrap, table);
+}
+
+// MARK: Render
+
+let renderSeq = 0;
+async function render() {
+  if (!state) return;
+  const seq = ++renderSeq;
+  document.getElementById('nav').replaceChildren(
+    el('div', { class: 'brand' }, icon('waves', 20), 'Ebb'),
+    TABS.map(([id, label, ic]) => el('button', { class: id === tab ? 'on' : '', onclick: () => show(id) }, icon(ic, 16), label)),
+    el('div', { class: 'version muted small' }, `Version ${state.version}`));
+  const content = tab === 'today' ? await todayTab() : tab === 'report' ? await reportTab() : formTab(tab);
+  if (seq !== renderSeq) return;
+  const main = document.getElementById('main');
+  const scroll = main.scrollTop;
+  main.replaceChildren(...content);
+  main.scrollTop = scroll;
+}
+
+// Redraw forms only when their data changes (not every second), so typing isn't interrupted.
+let lastKey = '';
+onState((s) => {
+  const key = JSON.stringify([s.prefs, s.update, tab === 'today' ? Math.floor(s.today.activeSeconds / 30) + s.today.breaksCompleted : 0]);
+  state = s;
+  if (key === lastKey) return;
+  const focused = document.activeElement;
+  if (focused && focused.matches('input[type=number], input[type=text], input[type=time]') && lastKey) { lastKey = key; return; }
+  lastKey = key;
+  render();
+});
+</script>
+</body>
+</html>

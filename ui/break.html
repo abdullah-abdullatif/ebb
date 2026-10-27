@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ebb break</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  body {
+    background: linear-gradient(180deg, var(--night) 0%, var(--dusk) 55%, var(--tide) 100%);
+    color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 28px; overflow: hidden; text-align: center;
+  }
+  .orb-wrap { position: relative; width: 240px; height: 240px; display: flex; align-items: center; justify-content: center; }
+  /* Slow 4-in / 6-out breathing guide. */
+  .orb {
+    position: absolute; width: 220px; height: 220px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,201,138,.95) 0%, rgba(255,201,138,.15) 70%, transparent 72%);
+    filter: blur(1px); animation: breathe 10s ease-in-out infinite;
+  }
+  @keyframes breathe { 0% { transform: scale(.6); } 40% { transform: scale(1); } 100% { transform: scale(.6); } }
+  .orb-label { position: relative; color: var(--night); font-weight: 600; opacity: .85; font-size: 15px; }
+  h1 { font-size: 44px; font-weight: 600; letter-spacing: -.5px; }
+  .time { font-size: 76px; font-weight: 200; font-variant-numeric: tabular-nums; line-height: 1; }
+  .tip { font-size: 18px; max-width: 540px; opacity: .88; min-height: 52px; transition: opacity .6s; }
+  .actions { display: flex; gap: 14px; align-items: center; }
+  .pill {
+    color: #fff; background: rgba(255,255,255,.16); border: 0; border-radius: 999px; padding: 10px 20px;
+    font-weight: 500; display: inline-flex; gap: 8px; align-items: center;
+  }
+  .pill:hover:not(:disabled) { background: rgba(255,255,255,.24); }
+  .hold { position: relative; overflow: hidden; background: rgba(255,255,255,.08); opacity: .75; }
+  .hold .fill { position: absolute; inset: 0; width: 0; background: rgba(255,255,255,.28); }
+  .hold span { position: relative; }
+  .sheet {
+    width: 460px; text-align: left; padding: 24px; border-radius: 20px;
+    background: rgba(20, 28, 48, .72); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    --card: rgba(255,255,255,.08); --line: rgba(255,255,255,.18); --text: #fff; --muted: rgba(255,255,255,.65); --hover: rgba(255,255,255,.12);
+    color: #fff;
+  }
+  .sheet select option { color: #000; }
+  .mood { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+  .mood .faces { display: flex; gap: 8px; }
+  .mood button { font-size: 26px; background: rgba(255,255,255,.1); border: 0; border-radius: 14px; width: 54px; height: 54px; }
+  .mood button:hover { background: rgba(255,255,255,.22); transform: translateY(-2px); }
+  .secondary { display: flex; flex-direction: column; align-items: center; gap: 12px; opacity: .9; }
+  .secondary .time { font-size: 60px; }
+</style>
+</head>
+<body>
+<script type="module">
+import { invoke, onState, el, icon, clock, exceptionForm } from './common.js';
+
+const primary = new URLSearchParams(location.search).get('primary') === '1';
+
+const TIPS = [
+  'Look at something 6 metres away for 20 seconds. Your eyes will thank you.',
+  'Stand up. Roll your shoulders back five times.',
+  'Drink a full glass of water.',
+  'Walk to a window. Let your eyes rest on the horizon.',
+  'Stretch your wrists: palms out, fingers back, hold 15 seconds.',
+  'Unclench your jaw. Drop your shoulders. Breathe out slowly.',
+  'Step outside if you can: daylight resets your focus.',
+  'Close your eyes and cup them with warm palms for 30 seconds.',
+  'Name three things you can hear right now. Let your mind slow down.',
+];
+const MOODS = [['😣', 'Drained'], ['😕', 'Low'], ['😐', 'Okay'], ['🙂', 'Good'], ['😄', 'Great']];
+
+// A soft chime when the break begins (no files, no permission needed).
+function chime() {
+  try {
+    const ctx = new AudioContext();
+    [523.25, 783.99].forEach((f, i) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.value = f; o.type = 'sine';
+      g.gain.setValueAtTime(0, ctx.currentTime + i * 0.18);
+      g.gain.linearRampToValueAtTime(0.18, ctx.currentTime + i * 0.18 + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.18 + 1.6);
+      o.connect(g).connect(ctx.destination); o.start(ctx.currentTime + i * 0.18); o.stop(ctx.currentTime + i * 0.18 + 1.7);
+    });
+  } catch {}
+}
+
+if (!primary) {
+  const time = el('div', { class: 'time' });
+  document.body.append(el('div', { class: 'secondary' }, icon('cup', 48), time));
+  onState((s) => { if (s.phase.kind === 'onBreak') time.textContent = clock(s.phase.remaining); });
+} else {
+  chime();
+  const orbLabel = el('div', { class: 'orb-label' }, 'breathe in');
+  const time = el('div', { class: 'time' });
+  const tip = el('p', { class: 'tip' });
+  const bottom = el('div');
+  document.body.append(
+    el('div', { class: 'orb-wrap' }, el('div', { class: 'orb' }), orbLabel),
+    el('div', { class: 'stack', style: 'align-items:center' }, el('h1', {}, 'Time to ebb'), time, tip),
+    bottom,
+    el('div', { style: 'height:20px' }),
+  );
+  const t0 = performance.now();
+  setInterval(() => { orbLabel.textContent = ((performance.now() - t0) / 1000) % 10 < 4 ? 'breathe in' : 'breathe out'; }, 200);
+
+  let mode = 'actions'; // 'mood' first if enabled, then 'actions'; 'request' while asking for time
+  let moodDone = false;
+  let form = null;
+  let shownKey = '';
+
+  function render(s) {
+    const key = [mode, s.exceptionsLeft, s.prefs.strictMode, s.prefs.moodCheckIn && !moodDone].join();
+    if (key === shownKey) { form?.update(s); return; }
+    shownKey = key;
+    if (mode === 'request') {
+      form = exceptionForm({ onCancel: () => { mode = 'actions'; render(s); }, onDone: () => {} });
+      bottom.replaceChildren(el('div', { class: 'sheet' }, form.node));
+      form.update(s);
+      return;
+    }
+    form = null;
+    const parts = [];
+    if (s.prefs.moodCheckIn && !moodDone) {
+      parts.push(el('div', { class: 'mood' },
+        el('div', { style: 'opacity:.85' }, 'How are you feeling?'),
+        el('div', { class: 'faces' }, MOODS.map(([face, label], i) =>
+          el('button', { title: label, onclick: () => { invoke('record_mood', { mood: i + 1 }); moodDone = true; render(s); } }, face)))));
+    }
+    const left = s.exceptionsLeft;
+    const more = el('button', {
+      class: 'pill', disabled: left === 0 || s.maxExceptionMinutes < 1,
+      onclick: () => { mode = 'request'; render(s); },
+    }, icon('bolt', 16), left > 0 ? `I need more time (${left} left today)` : 'No exceptions left today');
+    const row = el('div', { class: 'actions' }, more);
+    if (!s.prefs.strictMode) row.append(holdToSkip(s.prefs.emergencySkipHoldSeconds));
+    parts.push(row);
+    bottom.replaceChildren(el('div', { class: 'stack', style: 'align-items:center;gap:22px' }, parts));
+  }
+
+  onState((s) => {
+    if (s.phase.kind !== 'onBreak') return;
+    const r = s.phase.remaining;
+    time.textContent = clock(r);
+    // New tip every 30 s.
+    const index = Math.floor((s.prefs.breakMinutes * 60 - r) / 30);
+    const next = TIPS[((index % TIPS.length) + TIPS.length) % TIPS.length];
+    if (tip.textContent !== next) tip.textContent = next;
+    render(s);
+  });
+}
+
+/** Deliberately slow escape hatch: you have to mean it. */
+function holdToSkip(seconds) {
+  const fill = el('div', { class: 'fill' });
+  const label = el('span', {}, 'Hold to skip');
+  const b = el('button', { class: 'pill hold' }, fill, label);
+  let timer = null;
+  const start = () => {
+    label.textContent = 'Keep holding…';
+    fill.style.transition = `width ${seconds}s linear`;
+    fill.style.width = '100%';
+    timer = setTimeout(() => invoke('emergency_skip'), seconds * 1000);
+  };
+  const stop = () => {
+    clearTimeout(timer);
+    label.textContent = 'Hold to skip';
+    fill.style.transition = 'width .2s ease-out';
+    fill.style.width = '0';
+  };
+  b.addEventListener('pointerdown', start);
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach((e) => b.addEventListener(e, stop));
+  return b;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ebb</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  html, body { background: transparent; }
+  .panel {
+    margin: 6px; background: var(--bg); border: 1px solid var(--line); border-radius: 14px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.22); padding: 16px; display: flex; flex-direction: column; gap: 12px;
+    height: calc(100vh - 12px); overflow: hidden;
+  }
+  .head { display: flex; gap: 14px; align-items: center; }
+  .ring-wrap { position: relative; width: 56px; height: 56px; flex: none; }
+  .ring-wrap .icon { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .note { font-size: 12px; padding: 7px 10px; border-radius: 8px; display: flex; gap: 8px; align-items: center; }
+  .note.meet { background: color-mix(in srgb, var(--meet) 14%, transparent); color: var(--meet); }
+  .note.info { background: var(--hover); color: var(--muted); }
+  .note.update { background: color-mix(in srgb, var(--tide) 14%, transparent); color: var(--tide); }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 0; width: 100%; }
+  .actions { display: flex; flex-direction: column; gap: 2px; }
+  .action { display: flex; gap: 10px; align-items: center; border: 0; background: none; padding: 7px 8px; text-align: left; border-radius: 8px; width: 100%; }
+  .action:hover:not(:disabled) { background: var(--hover); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px 8px; }
+  .foot { margin-top: auto; display: flex; justify-content: space-between; }
+  .foot button { border: 0; background: none; color: var(--muted); padding: 4px 6px; }
+  .foot button:hover { color: var(--text); }
+  select.pause { border: 0; background: none; padding: 7px 8px; width: 100%; cursor: pointer; }
+  select.pause:hover { background: var(--hover); }
+</style>
+</head>
+<body>
+<div class="panel">
+  <div class="head">
+    <div class="ring-wrap"><div id="ring"></div><span id="phase-icon"></span></div>
+    <div class="grow">
+      <h2 id="title" class="mono">Ebb</h2>
+      <div id="subtitle" class="muted small mono"></div>
+    </div>
+  </div>
+  <div id="meeting" class="note meet" hidden></div>
+  <div id="activity" class="note info" hidden></div>
+  <div id="update" class="note update" hidden></div>
+  <hr>
+  <div class="actions" id="actions"></div>
+  <hr>
+  <div class="row between"><h3>Today</h3><span class="muted small" id="score"></span></div>
+  <div class="grid" id="today"></div>
+  <div id="limit" hidden>
+    <div class="row between small"><span>Daily limit</span><span class="muted mono" id="limit-text"></span></div>
+    <div class="bar"><div id="limit-bar"></div></div>
+  </div>
+  <div class="foot">
+    <button id="settings">Settings…</button>
+    <button id="report">Weekly report</button>
+    <button id="quit">Quit Ebb</button>
+  </div>
+</div>
+<script type="module">
+import { invoke, onState, el, icon, ring, clock, hm, phaseInfo, activityText } from './common.js';
+
+const $ = (id) => document.getElementById(id);
+$('settings').onclick = () => invoke('open_settings', { tab: null });
+$('report').onclick = () => invoke('open_settings', { tab: 'report' });
+$('quit').onclick = () => invoke('quit');
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') window.__TAURI__.window.getCurrentWindow().close(); });
+
+const action = (iconName, text, onclick, disabled = false) =>
+  el('button', { class: 'action', onclick, disabled }, icon(iconName, 16), text);
+
+const stat = (value, label) => el('div', { class: 'stat' }, el('div', { class: 'value' }, value), el('div', { class: 'label' }, label));
+
+let actionsKey = '';
+onState((s) => {
+  const info = phaseInfo(s);
+  $('ring').innerHTML = ring(s.phase.kind === 'onBreak' ? 1 : s.cycleProgress, info.color);
+  $('phase-icon').replaceChildren(icon(info.icon, 20));
+  $('phase-icon').style.color = info.color;
+  $('title').textContent = info.title;
+  $('subtitle').textContent = `Focused for ${clock(s.workedSeconds)} this stretch`;
+
+  $('meeting').hidden = !s.meetingSummary;
+  $('meeting').replaceChildren(icon('video', 14), `In a meeting: ${s.meetingSummary ?? ''}`);
+  const act = activityText(s);
+  $('activity').hidden = !act || s.phase.kind === 'paused';
+  $('activity').replaceChildren(icon(s.activity === 'watching' ? 'video' : 'eye', 14), act ?? '');
+
+  const u = s.update;
+  $('update').hidden = !['ready', 'available', 'downloading'].includes(u.kind);
+  if (u.kind === 'ready') $('update').replaceChildren(icon('update', 14), `Ebb ${u.version} is ready. `, el('button', { class: 'link', onclick: () => invoke('install_update') }, 'Restart now'));
+  if (u.kind === 'available') $('update').replaceChildren(icon('update', 14), `Ebb ${u.version} is available. `, el('button', { class: 'link', onclick: () => invoke('install_update') }, 'Update'));
+  if (u.kind === 'downloading') $('update').replaceChildren(icon('update', 14), `Downloading Ebb ${u.version}… ${u.percent}%`);
+
+  // Rebuild actions only when something they depend on changes, so clicks aren't lost.
+  const paused = s.phase.kind === 'paused';
+  const key = [paused, s.exceptionsLeft, s.meeting.manual, s.phase.kind === 'onBreak'].join();
+  if (key !== actionsKey) {
+    actionsKey = key;
+    const pause = el('select', { class: 'pause' },
+      el('option', { value: '' }, '⏸  Pause Ebb…'),
+      el('option', { value: '30' }, 'For 30 minutes'),
+      el('option', { value: '60' }, 'For 1 hour'),
+      el('option', { value: '120' }, 'For 2 hours'),
+      el('option', { value: 'forever' }, 'Until I resume'));
+    pause.onchange = () => {
+      if (!pause.value) return;
+      invoke('pause', { minutes: pause.value === 'forever' ? null : Number(pause.value) });
+    };
+    const meeting = el('label', { class: 'action' },
+      el('label', { class: 'switch' }, el('input', { type: 'checkbox', checked: s.meeting.manual, onchange: (e) => invoke('set_manual_meeting', { on: e.target.checked }) }), el('span')),
+      "I'm in a meeting (no camera or mic)");
+    $('actions').replaceChildren(...(paused
+      ? [action('pause', 'Resume', () => invoke('resume'))]
+      : [
+          action('cup', 'Take a break now', () => invoke('start_break_now')),
+          action('bolt', `I'm in flow: ask for more time…`, () => invoke('open_request'), s.exceptionsLeft === 0),
+          meeting,
+          pause,
+        ]));
+  }
+
+  const t = s.today;
+  $('score').textContent = t.activeSeconds ? `Wellness ${s.todayWellbeing.score}/100` : '';
+  $('today').replaceChildren(
+    stat(hm(t.activeSeconds), 'Screen time'),
+    stat(t.breaksCompleted + t.naturalBreaks, 'Breaks'),
+    stat(t.breaksSkipped, 'Skipped'),
+    stat(s.prefs.eyeBreaksEnabled ? clock(s.secondsUntilEyeBreak) : 'off', 'Next eye break'),
+    stat(t.eyeBreaksTaken, 'Eye breaks'),
+    stat(s.exceptionsLeft, 'Exceptions left'),
+  );
+  $('limit').hidden = !s.limit.enabled;
+  if (s.limit.enabled) {
+    const frac = s.limit.usedSeconds / s.limit.limitSeconds;
+    $('limit-text').textContent = `${hm(s.limit.usedSeconds)} of ${hm(s.limit.limitSeconds)}`;
+    $('limit-bar').style.width = `${Math.min(100, frac * 100)}%`;
+    $('limit-bar').style.background = frac >= 1 ? 'var(--bad)' : frac >= 0.9 ? 'var(--warn)' : 'var(--tide)';
+  }
+});
+</script>
+</body>
+</html>

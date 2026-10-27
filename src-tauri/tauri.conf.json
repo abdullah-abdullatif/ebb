@@ -1,0 +1,58 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Ebb",
+  "version": "0.2.0",
+  "identifier": "app.ebb.Ebb",
+  "build": {
+    "frontendDist": "../ui"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "macOSPrivateApi": true,
+    "windows": [],
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src ipc: http://ipc.localhost"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "dmg", "nsis", "deb", "rpm", "appimage"],
+    "createUpdaterArtifacts": true,
+    "category": "Productivity",
+    "shortDescription": "Screen breaks that respect your meetings",
+    "longDescription": "Ebb makes you take screen breaks, adds 20-20-20 eye breaks and gentle health nudges, lets you ask for more time when it matters, and never interrupts a meeting.",
+    "copyright": "Work in flow, rest in ebb.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "14.0",
+      "signingIdentity": "-"
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    },
+    "linux": {
+      "deb": {
+        "depends": ["pulseaudio-utils | pipewire-pulse"]
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IENDOEUwNkUyNUZCNTQ5NzYKUldSMlNiVmY0Z2FPekxIT2xxcFBpQUNaMVhXNjE5RlRXUGEwZlM2c1RhNmgwOUVxUkdmNVJoNHUK",
+      "endpoints": [
+        "https://github.com/abdullah-abdullatif/ebb/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}

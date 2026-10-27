@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ebb wind-down</title>
+<style>
+  /* A warm, see-through tint over the whole screen. Clicks pass straight through. */
+  html, body { margin: 0; height: 100%; background: transparent; pointer-events: none; }
+  #tint { position: fixed; inset: 0; background: rgb(60, 28, 0); opacity: 0; transition: opacity 4s ease; }
+</style>
+</head>
+<body>
+<div id="tint"></div>
+<script type="module">
+import { listen } from './common.js';
+const tint = document.getElementById('tint');
+const set = (level) => { tint.style.opacity = String(level); };
+requestAnimationFrame(() => set(Number(new URLSearchParams(location.search).get('level') || 0.25)));
+listen('ebb://dim', (e) => set(e.payload));
+</script>
+</body>
+</html>

@@ -1,7 +1,9 @@
 name: Build
 
-# Every push: compile, unit-test, run the real app through a full cycle, and keep a downloadable Ebb.zip as a workflow artifact.
-# Push a tag like v0.1.0: also publish a GitHub Release with Ebb.zip attached.
+# Every push: unit-test on macOS, Windows and Linux, build the real app for each, run it
+# through a sped-up work → break → work cycle, and keep the installers as workflow artifacts.
+# Push a tag like v0.3.0: also publish a GitHub Release with installers for every platform
+# and the signed latest.json that installed copies of Ebb update themselves from.
 on:
   push:
     branches: [main]
@@ -12,41 +14,118 @@ on:
 permissions:
   contents: write
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
+  create-release:
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    outputs:
+      id: ${{ steps.release.outputs.id }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --draft --title "Ebb $GITHUB_REF_NAME" --notes-file .github/release-notes.md
+          echo "id=$(gh release view "$GITHUB_REF_NAME" --json databaseId -q .databaseId)" >> "$GITHUB_OUTPUT"
+
   build:
-    runs-on: macos-15
+    needs: [create-release]
+    if: always() && (needs.create-release.result == 'success' || needs.create-release.result == 'skipped')
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            name: macOS
+            args: --target universal-apple-darwin
+            binary: src-tauri/target/universal-apple-darwin/release/ebb
+          - os: windows-latest
+            name: Windows
+            args: ''
+            binary: src-tauri/target/release/ebb.exe
+          - os: ubuntu-22.04
+            name: Linux
+            args: ''
+            binary: src-tauri/target/release/ebb
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.name }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Test
-        run: swift test
-
-      - name: Build universal app
+      - name: Linux build dependencies
+        if: runner.os == 'Linux'
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          [[ "$GITHUB_REF_TYPE" == tag ]] || VERSION=""
-          UNIVERSAL=1 VERSION="$VERSION" scripts/build-app.sh
-          ditto -c -k --keepParent build/Ebb.app build/Ebb.zip
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf xvfb dbus-x11
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ runner.os == 'macOS' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      - name: Unit tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Use the tag as the version
+        if: github.ref_type == 'tag'
+        shell: bash
+        run: node -e "const f='src-tauri/tauri.conf.json',c=require('./'+f);c.version=process.env.GITHUB_REF_NAME.replace(/^v/,'');require('fs').writeFileSync(f,JSON.stringify(c,null,2))"
+
+      - name: Build (and upload to the release on tags)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          releaseId: ${{ needs.create-release.outputs.id }}
+          includeUpdaterJson: true
+          args: ${{ matrix.args }}
 
       - name: Smoke test the real app
-        run: scripts/smoke-test.sh
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == Linux ]]; then
+            xvfb-run -a dbus-launch --exit-with-session scripts/smoke-test.sh "${{ matrix.binary }}"
+          else
+            scripts/smoke-test.sh "${{ matrix.binary }}"
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Ebb
-          path: build/Ebb.zip
+          name: Ebb-${{ matrix.name }}
+          path: |
+            src-tauri/target/**/release/bundle/dmg/*.dmg
+            src-tauri/target/**/release/bundle/nsis/*.exe
+            src-tauri/target/**/release/bundle/deb/*.deb
+            src-tauri/target/**/release/bundle/rpm/*.rpm
+            src-tauri/target/**/release/bundle/appimage/*.AppImage
+          if-no-files-found: warn
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: smoke-test
+          name: smoke-test-${{ matrix.name }}
           path: build/smoke
 
-      - name: Publish release
-        if: github.ref_type == 'tag'
-        env:
+  publish-release:
+    needs: [create-release, build]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    steps:
+      - env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create "$GITHUB_REF_NAME" build/Ebb.zip \
-            --title "Ebb $GITHUB_REF_NAME" \
-            --notes-file .github/release-notes.md
+        run: gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false --latest

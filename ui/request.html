@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ask for more time</title>
+<link rel="stylesheet" href="style.css">
+<style>body { padding: 22px; }</style>
+</head>
+<body>
+<script type="module">
+import { invoke, onState, exceptionForm } from './common.js';
+
+const close = () => invoke('close_request');
+const form = exceptionForm({ onCancel: close, onDone: close });
+document.body.append(form.node);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+onState(form.update);
+</script>
+</body>
+</html>

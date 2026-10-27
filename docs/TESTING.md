@@ -2,30 +2,46 @@
 
 ## Automatic (runs on every push)
 
-GitHub Actions runs these on a real Mac (`.github/workflows/build.yml`):
+GitHub Actions runs these on real macOS, Windows and Linux machines (`.github/workflows/build.yml`):
 
 | Check | What it proves |
 |---|---|
-| `swift test` | The work/break logic, exceptions, meetings, sleep, pause, settings, history and formatting (35+ tests) |
-| Universal build | The app compiles for Apple Silicon and Intel without errors |
-| `scripts/smoke-test.sh` | The **real app** launches, opens Settings, warns, shows the break screen, finishes the break and goes back to work, without crashing. Screenshots are attached to the run as the `smoke-test` artifact |
+| `cargo test` | The work/break clock (including the new "watching without touching" rules), eye breaks and nudges, wellness score, weekly report and tips, settings, storage and the import of 0.1 history, and the engine's effects |
+| Build | Installers build for each OS (universal binary on macOS), signed for the updater |
+| `scripts/smoke-test.sh` | The **real app** launches, opens Settings, shows an eye break, warns, shows the break screen, finishes the break and goes back to work without crashing, and writes its history. On Linux it runs under a virtual display. macOS screenshots are attached to the run as `smoke-test-macOS` |
 
 Run the same things locally with `make test` and `make smoke`.
 
-## Manual checklist (things only a real person and Mac can check)
+## Manual checklist (things only a real person and computer can check)
+
+Run it on each OS you ship to. Items marked macOS only don't apply elsewhere.
 
 For quick testing, set **Settings → Rhythm → Work** to 10 min and **Break** to 1 min.
 
 ### Menu bar
-- [ ] The waves icon and countdown appear in the menu bar; there's no Dock icon.
+- [ ] The waves icon (and countdown on macOS/Linux) appears in the menu bar / tray; there's no Dock or taskbar icon.
 - [ ] The countdown goes down while you type or use the mouse.
-- [ ] Stop touching the Mac for over 60 s: the clock pauses ("Paused — no activity").
-- [ ] Leave it for 5+ min: you're greeted with "Welcome back" and a fresh cycle.
+- [ ] Stop touching the computer for a few minutes: the clock **keeps running** and the panel says "No input, still counting".
+- [ ] Play a YouTube video full-screen for 20+ min without touching anything: the panel says "Watching a video" and the clock keeps running.
+- [ ] Lock the screen: the clock pauses at once ("Paused: screen locked"). Stay locked 5+ min: "Welcome back" and a fresh cycle.
+- [ ] Walk away without locking for longer than the grace period: a fresh cycle, and today's screen time drops by the time you were gone.
 - [ ] **Settings…** opens the Settings window in front of everything.
 - [ ] **Pause Ebb → 30 minutes** pauses it; **Resume** brings it back.
 
+### Eyes, body, night
+- [ ] After 20 min of screen time, the "Look far away" card appears at the top for 20 s; **Skip** closes it.
+- [ ] Blink / posture / water cards appear on their intervals and disappear by themselves.
+- [ ] Turn on a daily limit of 1 h: a heads-up at 54 min, then "Daily screen time reached".
+- [ ] Turn on wind-down with a start time a minute from now: a reminder appears and the screen gets a warm tint you can click through. Moving the slider changes it live.
+- [ ] Mood faces on the break screen; the weekly report shows the average.
+- [ ] **Settings → Weekly report**: bars per day with scores, hover tooltips, ← → between weeks, suggestions.
+
+### Updates
+- [ ] Install an older release, publish a newer tag: within a few hours (or via **Check for updates…**) the "Ebb x.y.z is ready" card appears; **Restart now** opens the new version.
+- [ ] With an update downloaded, lock the screen for 5+ min: Ebb restarts into the new version by itself.
+
 ### Heads-up & break
-- [ ] 2 min before the break, a "Break in 2:00" notification appears.
+- [ ] 2 min before the break, a "Break in 2:00" card appears in the top-right corner.
 - [ ] Its **Take break now** button starts the break.
 - [ ] The break screen covers **every display**, including a full-screen app (try a full-screen Safari window).
 - [ ] The countdown, breathing circle and tips show; tips change every 30 s.
@@ -46,15 +62,16 @@ For quick testing, set **Settings → Rhythm → Work** to 10 min and **Break** 
 - [ ] Let the break come due during the call: you get "Break postponed — you're in a meeting" and **no break screen**.
 - [ ] Hang up: "Meeting over — break in 1:30", then the break starts.
 - [ ] Start a call **during** a break: the break screen disappears so you can join.
-- [ ] Turn on **Calendar** detection, allow access, and during a calendar event it counts as a meeting.
+- [ ] (macOS) Turn on **Calendar** detection, allow access, and during a calendar event it counts as a meeting.
 - [ ] The **I'm in a meeting** checkbox works with no camera or mic.
 
 ### Strict mode
-- [ ] Turn on Strict mode. During a break the Dock and menu bar are hidden, ⌘-Tab does nothing, and there's no skip button.
+- [ ] Turn on Strict mode. During a break there's no skip button and clicking another window brings the break back. (macOS) The Dock and menu bar are hidden and ⌘-Tab does nothing.
 - [ ] Exceptions still work in strict mode.
 
 ### System
 - [ ] Close the lid for 10 min, open it: Ebb counts that as a break.
 - [ ] **Open Ebb at login** (with Ebb in /Applications): log out and in, and Ebb starts.
 - [ ] Quit and reopen Ebb: settings and today's history are kept, and so is the number of exceptions used.
+- [ ] (macOS, upgrading from 0.1) History from the old app shows up in Settings → Today.
 - [ ] Plug in or unplug a monitor during a break: the break screen adjusts.

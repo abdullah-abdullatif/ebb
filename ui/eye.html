@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Eye break</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  html, body { background: transparent; overflow: hidden; }
+  .card {
+    margin: 8px; padding: 20px 22px; border-radius: 18px; color: #fff;
+    background: linear-gradient(135deg, var(--night), var(--tide)); box-shadow: 0 14px 34px rgba(0,0,0,.3);
+    display: flex; gap: 18px; align-items: center; animation: in .4s ease-out;
+  }
+  @keyframes in { from { transform: translateY(-16px); opacity: 0; } }
+  .ring-wrap { position: relative; width: 84px; height: 84px; flex: none; --track: rgba(255,255,255,.18); }
+  .ring-wrap .n { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 300; font-variant-numeric: tabular-nums; }
+  h2 { font-size: 17px; }
+  p { opacity: .85; margin-top: 4px; font-size: 13px; }
+  button { margin-top: 12px; color: #fff; background: rgba(255,255,255,.14); border: 0; border-radius: 999px; padding: 5px 14px; font-size: 12px; }
+  button:hover { background: rgba(255,255,255,.24) !important; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="ring-wrap"><div id="ring"></div><div class="n" id="n"></div></div>
+  <div>
+    <h2>Look far away</h2>
+    <p>Rest your eyes on something at least 6 metres (20 feet) away until the circle fills. Blink slowly.</p>
+    <button id="skip">Skip this one</button>
+  </div>
+</div>
+<script type="module">
+import { invoke, onState, ring } from './common.js';
+document.getElementById('skip').onclick = () => invoke('skip_eye_break');
+onState((s) => {
+  const r = s.eyeBreakRemaining;
+  if (r == null) return;
+  const total = s.prefs.eyeBreakSeconds;
+  document.getElementById('n').textContent = r;
+  document.getElementById('ring').innerHTML = ring((total - r) / total, '#ffc98a', 84, 7);
+});
+</script>
+</body>
+</html>

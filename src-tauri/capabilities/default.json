@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "All Ebb windows: talk to the Ebb core and listen for its state.",
+  "windows": ["*"],
+  "permissions": ["core:default", "core:window:allow-close", "core:window:allow-destroy"]
+}

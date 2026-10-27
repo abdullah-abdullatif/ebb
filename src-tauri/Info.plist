@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Ebb checks whether a calendar event is happening right now so it doesn't start a break during a meeting. Event details never leave your Mac.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Ebb checks whether a calendar event is happening right now so it doesn't start a break during a meeting. Event details never leave your Mac.</string>
+</dict>
+</plist>
