@@ -291,7 +291,7 @@ pub fn update_tray(app: &AppHandle, s: &Snapshot) {
 
 fn build_tray(app: &AppHandle) -> tauri::Result<()> {
     let item = |id: &str, text: &str| MenuItem::with_id(app, id, text, true, None::<&str>);
-    let pause = Submenu::with_items(
+    let pause_menu = Submenu::with_items(
         app,
         "Pause Ebb",
         true,
@@ -306,7 +306,7 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
             &item("break", "Take a break now")?,
             &item("more", "Ask for more time…")?,
             &meeting,
-            &pause,
+            &pause_menu,
             &item("resume", "Resume")?,
             &PredefinedMenuItem::separator(app)?,
             &item("report", "Weekly report…")?,

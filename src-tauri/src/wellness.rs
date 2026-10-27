@@ -151,7 +151,7 @@ impl Wellness {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use WellnessEvent::*;
+    use WellnessEvent::{EyeBreakEnded, EyeBreakStarted};
 
     fn prefs() -> Preferences {
         let mut p = Preferences::default();
@@ -223,10 +223,10 @@ mod tests {
         p.posture = Nudge { enabled: true, every_minutes: 2 };
         let mut w = Wellness::new(60);
         let events = run(&mut w, &p, 120, true, true);
-        assert_eq!(events, vec![Nudge { nudge: NudgeKind::Posture }]);
+        assert_eq!(events, vec![WellnessEvent::Nudge { nudge: NudgeKind::Posture }]);
         // Water was due at the same time but waits for the quiet gap.
         let events = run(&mut w, &p, 90, true, true);
-        assert_eq!(events, vec![Nudge { nudge: NudgeKind::Water }]);
+        assert_eq!(events, vec![WellnessEvent::Nudge { nudge: NudgeKind::Water }]);
     }
 
     #[test]
