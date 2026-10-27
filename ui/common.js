@@ -35,6 +35,8 @@ export function el(tag, attrs = {}, ...children) {
     if (k.startsWith('on')) node.addEventListener(k.slice(2).toLowerCase(), v);
     else if (k === 'class') node.className = v;
     else if (k === 'html') node.innerHTML = v;
+    // Through CSSOM: the page's CSP (with Tauri's hashes) blocks style="" attributes.
+    else if (k === 'style') node.style.cssText = v;
     else node.setAttribute(k, v === true ? '' : v);
   }
   for (const c of children.flat(Infinity)) {
@@ -105,12 +107,20 @@ export function icon(name, size = 18) {
   return span;
 }
 
+/** "var(--tide)" → "#2e8c8f". SVG attributes can't use CSS variables. */
+export function resolveColor(c) {
+  const m = /^var\((--[\w-]+)\)$/.exec(c);
+  return m ? getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim() : c;
+}
+
 /** Progress ring as an SVG string. */
-export function ring(progress, color, size = 56, stroke = 6) {
+export function ring(progress, color, size = 56, stroke = 6, track = 'var(--track)') {
+  color = resolveColor(color);
+  track = resolveColor(track);
   const r = (size - stroke) / 2, c = 2 * Math.PI * r;
   const off = c * (1 - Math.min(1, Math.max(0, progress)));
   return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" class="ring">
-    <circle cx="${size / 2}" cy="${size / 2}" r="${r}" stroke="var(--track)" stroke-width="${stroke}" fill="none"/>
+    <circle cx="${size / 2}" cy="${size / 2}" r="${r}" stroke="${track}" stroke-width="${stroke}" fill="none"/>
     <circle cx="${size / 2}" cy="${size / 2}" r="${r}" stroke="${color}" stroke-width="${stroke}" fill="none"
       stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 ${size / 2} ${size / 2})"/>
   </svg>`;
