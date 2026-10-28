@@ -10,6 +10,8 @@ GitHub Actions runs these on real macOS, Windows and Linux machines (`.github/wo
 | Build | Installers build for each OS (universal binary on macOS), signed for the updater |
 | `scripts/smoke-test.sh` | The **real app** launches, opens Settings, shows an eye break, warns, shows the break screen, finishes the break and goes back to work without crashing, and writes its history. On Linux it runs under a virtual display. macOS screenshots are attached to the run as `smoke-test-macOS` |
 
+**After every release** (`.github/workflows/update-test.yml`, also runnable from the Actions tab): on each OS, an old build labelled 0.0.1 is run against the real GitHub release and must find the update, download it, verify its signature, install it and restart. The test then checks the result on disk: `Ebb.app` reports the new version (macOS), the installed version in the registry matches (Windows), and the AppImage is byte-for-byte the released one (Linux).
+
 Run the same things locally with `make test` and `make smoke`.
 
 ## Manual checklist (things only a real person and computer can check)
