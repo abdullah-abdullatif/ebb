@@ -1,0 +1,106 @@
+name: Update test
+
+# Proves that installed copies of Ebb really update themselves: builds an old version (0.0.1)
+# on each system, runs it, and checks it installs the latest GitHub release by itself.
+# Publishes nothing. Runs after every release, and from the Actions tab whenever you like.
+on:
+  workflow_run:
+    workflows: [Build]
+    types: [completed]
+  workflow_dispatch:
+
+jobs:
+  update:
+    # On demand, or after a release build (a version typed in the Actions tab, or a v* tag).
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       (github.event.workflow_run.event == 'workflow_dispatch' || startsWith(github.event.workflow_run.head_branch, 'v')))
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            name: macOS
+            bundles: app
+          - os: windows-latest
+            name: Windows
+            bundles: nsis
+          - os: ubuntu-22.04
+            name: Linux
+            bundles: appimage
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf xvfb dbus-x11 libfuse2
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+
+      - name: Find the latest release
+        shell: bash
+        run: |
+          LATEST=$(curl -fsSL https://github.com/${{ github.repository }}/releases/latest/download/latest.json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s).version))")
+          echo "Latest release: $LATEST"
+          echo "LATEST=$LATEST" >> "$GITHUB_ENV"
+
+      - name: Build an old version (0.0.1)
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          node -e "const f='src-tauri/tauri.conf.json',c=require('./'+f);c.version='0.0.1';require('fs').writeFileSync(f,JSON.stringify(c,null,2))"
+          npx tauri build --bundles ${{ matrix.bundles }}
+
+      - name: macOS — update, then check the app on disk is the new version
+        if: runner.os == 'macOS'
+        run: |
+          APP="$PWD/src-tauri/target/release/bundle/macos/Ebb.app"
+          scripts/update-test.sh "$APP/Contents/MacOS/ebb"
+          pkill -f "$APP" || true
+          GOT=$(defaults read "$APP/Contents/Info" CFBundleShortVersionString)
+          echo "Ebb.app on disk is now $GOT (expected $LATEST)"
+          [[ "$GOT" == "$LATEST" ]]
+
+      - name: Windows — update, then check the installed version
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          scripts/update-test.sh src-tauri/target/release/ebb.exe
+          for i in $(seq 1 60); do
+            GOT=$(powershell -NoProfile -Command "(Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Ebb' -ErrorAction SilentlyContinue).DisplayVersion")
+            [[ "$GOT" == "$LATEST" ]] && break
+            sleep 2
+          done
+          echo "Installed Ebb is $GOT (expected $LATEST)"
+          taskkill //F //IM ebb.exe || true
+          [[ "$GOT" == "$LATEST" ]]
+
+      - name: Linux — update, then check the AppImage was replaced by the release
+        if: runner.os == 'Linux'
+        run: |
+          IMG=$(ls src-tauri/target/release/bundle/appimage/*.AppImage)
+          xvfb-run -a dbus-launch --exit-with-session scripts/update-test.sh "$PWD/$IMG"
+          pkill -f AppImage || true
+          curl -fsSL -o /tmp/release.AppImage "https://github.com/${{ github.repository }}/releases/download/v$LATEST/Ebb_${LATEST}_amd64.AppImage"
+          echo "$(sha256sum "$IMG" | cut -c1-16)… local, $(sha256sum /tmp/release.AppImage | cut -c1-16)… release"
+          [[ "$(sha256sum < "$IMG")" == "$(sha256sum < /tmp/release.AppImage)" ]]
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: update-test-${{ matrix.name }}
+          path: build/update-test

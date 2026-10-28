@@ -25,7 +25,18 @@ static PENDING: Mutex<Option<(Update, Vec<u8>)>> = Mutex::new(None);
 
 pub const CHECK_EVERY_HOURS: u64 = 6;
 
+/// `EBB_UPDATE_TEST=1`: used by CI to prove updating works end to end. An old build checks at
+/// once, prints each step as `EBB_UPDATE …`, and installs as soon as the download is verified.
+pub fn is_update_test() -> bool {
+    std::env::var("EBB_UPDATE_TEST").as_deref() == Ok("1")
+}
+
 fn set_status(app: &AppHandle, status: UpdateStatus) {
+    if is_update_test() && !matches!(status, UpdateStatus::Downloading { percent: 1..=99, .. }) {
+        use std::io::Write;
+        println!("EBB_UPDATE {status:?}");
+        let _ = std::io::stdout().flush();
+    }
     let shared = app.state::<Shared>();
     shared.lock().unwrap().update = status;
 }
@@ -108,6 +119,10 @@ async fn download(app: AppHandle, update: Update) {
         Ok(bytes) => {
             *PENDING.lock().unwrap() = Some((update, bytes));
             set_status(&app, UpdateStatus::Ready { version: version.clone() });
+            if is_update_test() {
+                install_and_restart(app);
+                return;
+            }
             toast(&app, format!("Ebb {version} is ready"),
                 "Restart now, or Ebb will update itself the next time you step away.".into(),
                 vec![("restartUpdate", "Restart now"), ("dismiss", "Later")], None);
@@ -130,8 +145,18 @@ pub fn install_and_restart(app: AppHandle) {
             return;
         }
         app.state::<Shared>().lock().unwrap().stats.save_if_needed();
+        if is_update_test() {
+            println!("EBB_UPDATE installing");
+        }
         match update.install(bytes) {
-            Ok(()) => app.restart(),
+            Ok(()) => {
+                if is_update_test() {
+                    println!("EBB_UPDATE installed, restarting");
+                    use std::io::Write;
+                    let _ = std::io::stdout().flush();
+                }
+                app.restart()
+            }
             Err(e) => {
                 log::warn(&format!("update install failed: {e}"));
                 set_status(&app, UpdateStatus::Error { message: e.to_string() });

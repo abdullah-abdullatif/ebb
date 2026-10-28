@@ -472,7 +472,9 @@ pub fn run() {
             if !smoke && !cfg!(debug_assertions) {
                 let handle = app.handle().clone();
                 std::thread::spawn(move || {
-                    std::thread::sleep(Duration::from_secs(30));
+                    if !updater::is_update_test() {
+                        std::thread::sleep(Duration::from_secs(30));
+                    }
                     loop {
                         updater::check(handle.clone(), false);
                         std::thread::sleep(Duration::from_secs(updater::CHECK_EVERY_HOURS * 3600));
