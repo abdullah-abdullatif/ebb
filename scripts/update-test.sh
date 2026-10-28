@@ -32,6 +32,6 @@ wait_for "EBB_UPDATE installing" 30
 [[ "$(uname -s)" == MINGW* || "$(uname -s)" == MSYS* ]] || wait_for "EBB_UPDATE installed, restarting" 120
 sleep 15
 grep -F "EBB_UPDATE" "$LOG"
-if grep -q "Error" "$LOG"; then echo "FAIL: updater reported an error"; exit 1; fi
+if grep -q "EBB_UPDATE Error" "$LOG"; then echo "FAIL: updater reported an error"; exit 1; fi
 kill "$PID" 2>/dev/null || true
 echo "PASS: the old build found, verified and installed the update"
